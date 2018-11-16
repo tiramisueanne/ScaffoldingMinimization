@@ -1,0 +1,18 @@
+So, eigen matrix is going to be allocated either on the type (so matrix3 is going to be 3x3) or by construction *only* so if you don't describe one of those two things you're doing it wrong
+
+.cols are a thing that says size while .col is a thing that gives you a column
+
+Bug Catcher: 11/6
+The intersection segment is not currently working, so what is happening? 
+    - What is happening is that u, t is only [0, 1], so both u, t, is going to be 0 
+    - we need to somehow get the line in the direction of the intersection?  
+      - if we get a 0,0, we know that we are pointing in the wrong direction
+      - can we switch the signs of the lines and confidently get the intersection?  
+      - if 0,0, then 
+
+Bug Catcher: 11/7
+    - Segfault due to rows being too sm0l for index (had the most fucking obtuse warning that runtime rows exceeded compile time rows)
+    - Fixed, caused by faces using 1 indexed points 
+
+Bug Catcher: 11/8
+    - t_0 = (q - p ) * r / (r * r) 
