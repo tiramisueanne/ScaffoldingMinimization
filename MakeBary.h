@@ -2,7 +2,7 @@
 #include <igl/opengl/glfw/Viewer.h>
 #include <igl/triangle_triangle_adjacency.h>
 
-void makeEdges(Eigen::MatrixXi F, Eigen::MatrixXd BC,
+void makeEdges(Eigen::MatrixXi &F, Eigen::MatrixXd &BC,
                igl::opengl::glfw::Viewer &viewer) {
   Eigen::MatrixXi TT;
   Eigen::MatrixXi TTi;

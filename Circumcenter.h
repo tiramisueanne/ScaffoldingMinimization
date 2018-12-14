@@ -30,34 +30,28 @@ RowVector3d intersection(RowVector3d p, RowVector3d r, RowVector3d q,
   return inter1;
 }
 
-
-
 MatrixXd getCircumcenters(const MatrixXd &V, const MatrixXi &F) {
   MatrixXd circ(F.rows(), 3);
   for (int i = 0; i < F.rows(); i++) {
     RowVector3i face = F.row(i);
-    // Find the slopes (m) and midpoints (r)
+    // Find the slopes (m) and midpoints (r) of primal edges
     Eigen::Matrix<double, 1, 3> m1 = V.row(face(1)) - V.row(face(0));
-    Eigen::Matrix<double, 1, 3> r1 =
-        (V.row(face(1)) + V.row(face(0))) / 2;
-    // I think it is this line right here
+    Eigen::Matrix<double, 1, 3> r1 = (V.row(face(1)) + V.row(face(0))) / 2;
     Eigen::Matrix<double, 1, 3> m2 = V.row(face(2)) - V.row(face(0));
-    Eigen::Matrix<double, 1, 3> r2 =
-        (V.row(face(2)) + V.row(face(0))) / 2;
+    Eigen::Matrix<double, 1, 3> r2 = (V.row(face(2)) + V.row(face(0))) / 2;
+    // vector going only in positive z direction
     Eigen::Matrix<double, 1, 3> straightUp;
     straightUp << 0, 0, 1.0;
+
+    // Get slopes (ortho) of reciprocal edges
     Matrix<double, 1, 3> ortho1;
     Matrix<double, 1, 3> ortho2;
     Matrix<double, 1, 3> checkP;
     igl::cross(m1, straightUp, ortho1);
     igl::cross(m2, straightUp, ortho2);
-    igl::cross(ortho1, ortho2, checkP);
-    double isZero = sqrt(checkP.dot(checkP));
-    if (isZero < 0.00000001) {
-      cerr << "Is Zero was less than threshold" << endl;
-      cerr << "Thus, the two sides of the triangle were colinear" << endl;
-      throw new exception();
-    }
+    // Find intersection of two perpendicular bisectors of original,
+    // thus giving us the intersection of the 3 perp bisectors
+    // of the primal, giving us the circumcenter
     circ.row(i) = intersection(r1, ortho1, r2, ortho2);
 #ifdef DEBUG
     for (int i = 0; i < 3; i++) {
@@ -67,4 +61,9 @@ MatrixXd getCircumcenters(const MatrixXd &V, const MatrixXi &F) {
 #endif
   }
   return circ;
+}
+
+// params: primal face indexes, circumcenters
+MatrixXd getReciprocalFaces(Eigen::MatrixXi &F, Eigen::MatrixXd &C) {
+
 }
