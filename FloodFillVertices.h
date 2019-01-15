@@ -2,7 +2,7 @@
 #include <queue>
 #include <set>
 
-#include "FindGradient.h"
+#include "Gradient.h"
 using namespace std;
 using namespace Eigen;
 
@@ -40,19 +40,19 @@ MatrixXd getNewVertices(MatrixXd &reciprocalDual, MatrixXd &V, MatrixXi &F) {
   while (seenFaces.size() != F.rows()) {
     int currFace = toProcess.front();
     toProcess.pop();
-    // for every one to popOn, we check whether or not we have computed the gradient
+    // for every one to nextFace, we check whether or not we have computed the gradient
     // if we have, then we don't do anything, otherwise we compute
     // the gradient and put on the new vertices
     for (int i = 0; i < TT.row(currFace).size(); i++) {
-      int popOn = TT(currFace, i);
-      if (seenFaces.find(popOn) == seenFaces.end() && popOn != -1) {
-        gradients.row(popOn) = getNextGradient(
-            gradients.row(currFace), reciprocalDual.row(currFace), reciprocalDual.row(popOn));
+      int nextFace = TT(currFace, i);
+      if (seenFaces.find(nextFace) == seenFaces.end() && nextFace != -1) {
+        gradients.row(nextFace) = getNextGradient(
+            gradients.row(currFace), reciprocalDual.row(currFace), reciprocalDual.row(nextFace));
         // Find a matching vertex between this and the next
         int indexMatching = -1;
         for (int i = 0; i < 3; i++) {
           for (int j = 0; j < 3; j++) {
-            if (F(currFace, i) == F(popOn, j)) {
+            if (F(currFace, i) == F(nextFace, j)) {
               indexMatching = j;
             }
           }
@@ -66,13 +66,13 @@ MatrixXd getNewVertices(MatrixXd &reciprocalDual, MatrixXd &V, MatrixXi &F) {
         // (but this is okay due to the gradients giving the same result at shared points)
         for (int i = 0; i < 3; i++) {
           if (i != indexMatching) {
-            newVerts.row(F(popOn, i)) = applyGradient(
-                gradients.row(popOn), newVerts.row(F(popOn, indexMatching)),
-                V.row(F(popOn, i)));
+            newVerts.row(F(nextFace, i)) = applyGradient(
+                gradients.row(nextFace), newVerts.row(F(nextFace, indexMatching)),
+                V.row(F(nextFace, i)));
           }
         }
-        toProcess.push(popOn);
-        seenFaces.insert(popOn);
+        toProcess.push(nextFace);
+        seenFaces.insert(nextFace);
       }
     }
   }
