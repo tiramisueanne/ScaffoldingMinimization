@@ -62,8 +62,3 @@ MatrixXd getCircumcenters(const MatrixXd &V, const MatrixXi &F) {
   }
   return circ;
 }
-
-// params: primal face indexes, circumcenters
-MatrixXd getReciprocalFaces(Eigen::MatrixXi &F, Eigen::MatrixXd &C) {
-
-}

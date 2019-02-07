@@ -7,7 +7,7 @@ using namespace std;
 using namespace Eigen;
 
 // A flood fill of computing gradients and new vertices
-MatrixXd getNewVertices(MatrixXd &reciprocalDual, MatrixXd &V, MatrixXi &F) {
+MatrixXd getNewPrimal(MatrixXd &reciprocalDual, MatrixXd &V, MatrixXi &F) {
   // Adjacency matrix
   // TT | F | x 3 matrix where (i,j) is index of face that is adjacent
   // to triangle i on edge j
