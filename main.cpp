@@ -42,11 +42,10 @@ int main(int argc, char *argv[]) {
     cerr << "We have an error here" << endl;
   }
 
-
-  leastSquaresResult(V, F);
+  MatrixXd newVerts = getNewPrimal(dualVerts, V, F);
+  leastSquaresResult(newVerts, F);
 
   // This is the flood fill of finding the gradient and creating newVertices
-  MatrixXd newVerts = getNewPrimal(dualVerts, V, F);
 
   // utilize libigl's viewer
   igl::opengl::glfw::Viewer viewer;
