@@ -27,8 +27,8 @@ set<pair<int, int>> allEdges(const MatrixXi &F) {
   for (int currFace = 0; currFace < F.rows(); currFace++) {
     RowVector3i face = F.row(currFace);
     for (int i = 0; i < 3; i++) {
-      edges.insert(make_pair<int, int>(int(face(i)), int(face(i + 1 % 3))));
-      edges.insert(make_pair<int, int>(int(face(i + 1 % 3)), int(face(i))));
+      edges.insert(pair<int, int>(face(i), (face((i + 1) % 3))));
+      edges.insert(pair<int, int>(face((i + 1) % 3), (face(i))));
     }
   }
   return edges;
@@ -50,7 +50,7 @@ public:
     }
     int matIndexEdge = 0;
     for (const auto edge : allEdges) {
-      if(edgeIndex.find(edge) == edgeIndex.end()) {
+      if (edgeIndex.find(edge) == edgeIndex.end()) {
         edgeIndex[edge] = matIndexEdge;
         edgeIndex[pair<int, int>(edge.second, edge.first)] = matIndexEdge;
         matIndexEdge++;
@@ -75,7 +75,7 @@ VectorXd leastSquaresResult(const MatrixXd &V, const MatrixXi &F) {
   unsigned int internalSize = internalNodes.size();
   qp::Matrix<double> weights = getForces(V, F, internalSize);
   set<pair<int, int>> edges = allEdges(F);
-  if(edges.size() %2 != 0) {
+  if (edges.size() % 2 != 0) {
     cerr << "We do not have an even number of edges!" << endl;
     throw new exception();
   }
