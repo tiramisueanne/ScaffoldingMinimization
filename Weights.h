@@ -2,6 +2,7 @@
 
 #include <Eigen/Dense>
 #include <iostream>
+#include <vector>
 
 #include "GetInternalNodes.h"
 #include <QuadProg++/QuadProg++.hh>
@@ -13,23 +14,48 @@ namespace qp = quadprogpp;
 // A method for getting each "real" weight for the vertices
 // TODO: figure out how to read in the "real" weights, as we are just using 2
 // for each one right now
-qp::Vector<double> getForces(MatrixXd V, MatrixXi F) {
+qp::Matrix<double> getForces(const MatrixXd &V, const MatrixXi &F,
+                             int numInternal) {
   // Since we currently don't have any information on weights, just
   // return a random number for every vertex of the primal
-  return qp::Vector<double>(2.0, int(V.innerSize()));
+  return qp::Matrix<double>(2.0, 1, numInternal);
 }
+
+// A class to get the index into a matrix of only internal nodes
+class Indexer {
+  int numVert;
+  vector<int> indexes;
+
+public:
+  Indexer(int numVertices, set<int> internalNodes) : numVert(numVertices) {
+    indexes = vector<int>(-1, numVertices);
+    int matrixIndex = 0;
+    for (int internal : internalNodes) {
+      indexes[internal] = matrixIndex;
+      matrixIndex++;
+    }
+  }
+
+  int indexVert(int vertex) { return indexes[vertex]; }
+
+  // If the edge is v1 - v2
+  int indexEdge(int v1, int v2) {
+    return v1 * numVert + v2;
+  }
+};
 
 // V and Weights will have the same number of entries
 // F just allows for us to collect faces
-VectorXd leastSquaresResult(const MatrixXd &V, const MatrixXi &F) {
+VectorXd
+leastSquaresResult(const MatrixXd &V, const MatrixXi &F) {
   // set<int> internalNodes = getInternal(V, F);
-  qp::Vector<double> weights = getForces(V, F);
   // We will only ever constrain or check the weights of internal nodes
   // as the others are clamped down at the edges
   set<int> internalNodes = getInternalNodes(V, F);
   unsigned int rowSize = int(V.innerSize());
   unsigned int internalSize = internalNodes.size();
   unsigned int numEdges = rowSize * rowSize;
+  qp::Matrix<double> weights = getForces(V, F, internalSize);
   int ZERO = 0;
   // This will be the array of differences of the z values
   // each row consists of a single vertex
@@ -40,7 +66,7 @@ VectorXd leastSquaresResult(const MatrixXd &V, const MatrixXi &F) {
   // This matrix is two rows for every vertex: one is diff in x for
   // each edge, and one is diff in y
   // This will be constrained to zero.
-  qp::Matrix<double> xyDiff(ZERO, numEdges * 2, internalSize);
+  qp::Matrix<double> xyDiff(ZERO,  numEdges, internalSize * 2);
 
   // This is the identity matrix, to help us constrain the weights
   // to be positive
@@ -48,6 +74,7 @@ VectorXd leastSquaresResult(const MatrixXd &V, const MatrixXi &F) {
   for (unsigned int i = 0; i < identity.nrows(); i++) {
     identity[i][i] = 1;
   }
+  Indexer indr(rowSize, internalNodes);
 
   // Fill up zDiff through going through each triangle and filling in
   for (int i = 0; i < F.rows(); i++) {
@@ -72,8 +99,9 @@ VectorXd leastSquaresResult(const MatrixXd &V, const MatrixXi &F) {
         const double zDiff1 = currPoints(j, 2) - currPoints(other1, 2);
         const double xDiff1 = currPoints(j, 0) - currPoints(other1, 0);
         const double yDiff1 = currPoints(j, 1) - currPoints(other1, 1);
-        xyDiff[index][currIndex * 2] = xDiff1;
-        xyDiff[index][currIndex * 2 + 1] = yDiff1;
+        zDiff[indr.indexVert(currIndex)][indr.indexEdge(currIndex, other1)] = zDiff1;
+        xyDiff[indr.indexEdge(currIndex, other1)][indr.indexVert(currIndex) * 2] = xDiff1;
+        xyDiff[indr.indexEdge(currIndex, other1)][indr.indexVert(currIndex) * 2 + 1] = yDiff1;
       }
     }
   }
@@ -83,6 +111,7 @@ VectorXd leastSquaresResult(const MatrixXd &V, const MatrixXi &F) {
   qp::Vector<double> justZerosForXY(0.0, internalSize);
   qp::Vector<double> justZerosForPos(0.0, numEdges);
 
+  // qp::Matrix<double> weightsT = t(weights);
   qp::Vector<double> linearComponent(dot_prod(weights, zDiff));
   // To construct the positive definite zDiff matrix, we must
   // multiply it with itself
