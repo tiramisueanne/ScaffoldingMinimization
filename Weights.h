@@ -27,8 +27,7 @@ class Indexer {
   vector<int> indexes;
 
 public:
-  Indexer(int numVertices, set<int> internalNodes) : numVert(numVertices) {
-    indexes = vector<int>(-1, numVertices);
+  Indexer(int numVertices, set<int> internalNodes) : numVert(numVertices), indexes(numVert) {
     int matrixIndex = 0;
     for (int internal : internalNodes) {
       indexes[internal] = matrixIndex;
@@ -57,11 +56,13 @@ leastSquaresResult(const MatrixXd &V, const MatrixXi &F) {
   unsigned int numEdges = rowSize * rowSize;
   qp::Matrix<double> weights = getForces(V, F, internalSize);
   int ZERO = 0;
+  int ONE = 1;
   // This will be the array of differences of the z values
   // each row consists of a single vertex
   // initialize values to zero
   // innerSize = number of rows
-  qp::Matrix<double> zDiff(ZERO, internalSize, numEdges);
+  // TODO: MULTIPLY BY TWO
+  qp::Matrix<double> zDiff(ONE, internalSize, numEdges);
 
   // This matrix is two rows for every vertex: one is diff in x for
   // each edge, and one is diff in y
@@ -103,12 +104,12 @@ leastSquaresResult(const MatrixXd &V, const MatrixXi &F) {
         xyDiff[indr.indexEdge(currIndex, other1)][indr.indexVert(currIndex) * 2] = xDiff1;
         xyDiff[indr.indexEdge(currIndex, other1)][indr.indexVert(currIndex) * 2 + 1] = yDiff1;
       }
-    }
+    } 
   }
   qp::Vector<double> x(2, numEdges);
   qp::Vector<double> justOnes(1, numEdges);
   // The vector we add to the result of the constraint
-  qp::Vector<double> justZerosForXY(0.0, internalSize);
+  qp::Vector<double> justZerosForXY(0.0, internalSize*2);
   qp::Vector<double> justZerosForPos(0.0, numEdges);
 
   // qp::Matrix<double> weightsT = t(weights);
@@ -117,6 +118,7 @@ leastSquaresResult(const MatrixXd &V, const MatrixXi &F) {
   // multiply it with itself
   qp::Matrix<double> zDiffT = t(zDiff);
   zDiff = dot_prod(zDiffT, zDiff);
+  zDiff += (identity *= 5);
   double success =
       qp::solve_quadprog(zDiff, linearComponent, xyDiff, justZerosForXY,
                          identity, justZerosForPos, x);
