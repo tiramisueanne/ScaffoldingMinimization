@@ -6,6 +6,8 @@
 #include <iostream>
 #include <set>
 
+#define DEBUG
+
 using namespace std;
 using namespace Eigen;
 
@@ -43,12 +45,15 @@ set<int> getInternalNodes(const MatrixXd &V, const MatrixXi &F) {
             }
             halfIt.flipE();
         }
+
     }
     for (int i = 0; i < V.rows(); i++) {
         if (borderNodes.find(i) == borderNodes.end()) {
             internalNodes.insert(i);
         } else {
+            #ifdef DEBUG
             cout << i << " is in external " << endl;
+            #endif
         }
     }
     if (borderNodes.size() + internalNodes.size() != V.innerSize()) {

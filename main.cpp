@@ -4,6 +4,7 @@
 #include <igl/triangle_triangle_adjacency.h>
 #include <Eigen/Dense>
 
+#include <map>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,6 +21,7 @@
 
 using namespace std;
 using namespace Eigen;
+#define DEBUG
 
 int main(int argc, char *argv[]) {
     // Reading in the primal V, F files
@@ -36,7 +38,15 @@ int main(int argc, char *argv[]) {
     }
 
     // This is the flood fill of finding the gradient and creating newVertices
-    MatrixXd dualVerts = getNewDual(V, F, leastSquaresResult(V, F));
+    // MatrixXd dualVerts = getCircumcenters(V, F);
+    map<pair<int, int>, int> edgeWeights = getWeights(V, F);
+    #ifdef DEBUG
+    for(const auto edge : edgeWeights) {
+        cout << "pair: " << edge.first.first << " , " << edge.first.second << " and the value " << edge.second << endl;
+    }
+    #endif
+    MatrixXd dualVerts = getNewDual(V, F, edgeWeights);
+    cout << dualVerts << endl;
     MatrixXd newVerts = getNewPrimal(dualVerts, V, F);
 
     // utilize libigl's viewer

@@ -10,7 +10,7 @@
 using namespace std;
 using namespace Eigen;
 namespace qp = quadprogpp;
-// #define DEBUG
+#define DEBUG
 
 // A method for getting each "real" weight for the vertices
 // TODO: figure out how to read in the "real" weights, as we are just using 2
@@ -19,7 +19,7 @@ qp::Matrix<double> getForces(const MatrixXd &V, const MatrixXi &F,
                              int numInternal) {
     // Since we currently don't have any information on weights, just
     // return a random number for every vertex of the primal
-    return qp::Matrix<double>(2.0, 1, numInternal);
+    return qp::Matrix<double>(15.0, 1, numInternal);
 }
 
 set<pair<int, int>> allEdges(const MatrixXi &F) {
@@ -52,7 +52,6 @@ class Indexer {
         int matIndexEdge = 0;
         for (const auto edge : allEdges) {
             if (edgeIndex.find(edge) == edgeIndex.end()) {
-                cout << "adding " << edge.first << " , " << edge.second << endl;
                 edgeIndex[edge] = matIndexEdge;
                 edgeIndex[pair<int, int>(edge.second, edge.first)] =
                     matIndexEdge;
@@ -70,7 +69,7 @@ class Indexer {
 
 // V and Weights will have the same number of entries
 // F just allows for us to collect faces
-map<pair<int, int>, int> leastSquaresResult(const MatrixXd &V,
+map<pair<int, int>, int> getWeights(const MatrixXd &V,
                                             const MatrixXi &F) {
     // set<int> internalNodes = getInternal(V, F);
     // We will only ever constrain or check the weights of internal nodes
@@ -158,7 +157,8 @@ map<pair<int, int>, int> leastSquaresResult(const MatrixXd &V,
     // multiply it with itself
     qp::Matrix<double> zDiffT = t(zDiff);
     zDiff = dot_prod(zDiffT, zDiff);
-    zDiff += (identity *= 5);
+    zDiff *= 2;
+    zDiff += (identity *= pow(10, -9));
     identity /= 5;
 #ifdef DEBUG
     cout << "The ZDiff we pass is " << zDiff << endl;
@@ -167,12 +167,13 @@ map<pair<int, int>, int> leastSquaresResult(const MatrixXd &V,
     cout << "The dimensions of xyDiff is" << xyDiff.nrows() << " , "
          << xyDiff.ncols() << endl;
     cout << "The identity is" << identity << endl;
-// cout << "the dimensions of identity are" << identity.nrows() << " , " <<
-// identity.ncols() << endl;
 #endif
     double success =
         qp::solve_quadprog(zDiff, linearComponent, xyDiff, justZerosForXY,
                            identity, justZerosForPos, x);
+#ifdef DEBUG
+    cout << "The success value was" << success << endl;
+#endif
     map<pair<int, int>, int> toReturn;
     for (const auto edge : indr.edgeMap()) {
         toReturn[edge.first] = x[edge.second];
