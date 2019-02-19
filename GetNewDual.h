@@ -46,17 +46,24 @@ MatrixXd getNewDual(Eigen::MatrixXd &V, Eigen::MatrixXi &F,
             // This only turns the correct way due to all faces being
             // clockwise
             RowVector3i faceVerts = F.row(curFace);
-            RowVector3d curFaceDualCenter = newVerts.row(curFace);
+            MatrixXd curFaceDualCenter = newVerts.row(curFace);
             for (int vert = 0; vert < 3; vert++) {
-                int nextVert = (vert + 1) % 3;
-                RowVector3d edge = V.row(nextVert) - V.row(vert);
-                // Scale and turn left
-                RowVector3d leftEdge =
-                    turnLeft * edge *
-                    weights.at(pair<int, int>(vert, nextVert));
-                RowVector3d adjFaceDualCenter = leftEdge + curFaceDualCenter;
                 int adjFace = TT(curFace, vert);
-                newVerts.row(adjFace) = adjFaceDualCenter;
+                // If there is no adjacent face along this edge
+                if (adjFace == -1) {
+                    continue;
+                }
+                int nextVert = (vert + 1) % 3;
+                // Currently a row vector, but we need it to be col
+                MatrixXd edge = V.row(nextVert) - V.row(vert);
+                // Scale and turn left
+                Vector3d leftEdge = turnLeft * edge.transpose().col(0) *
+                                    weights.at(pair<int, int>(vert, nextVert));
+
+                MatrixXd adjFaceDualCenter =
+                    leftEdge + curFaceDualCenter.transpose().col(0);
+                RowVector3d adjFaceRow = adjFaceDualCenter.transpose().row(0);
+                newVerts.row(adjFace) = adjFaceRow;
                 facesToFill.push(adjFace);
             }
             filledFaces.insert(curFace);
