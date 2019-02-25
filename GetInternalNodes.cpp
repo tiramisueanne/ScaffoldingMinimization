@@ -1,17 +1,14 @@
-#pragma once
-
-#include <igl/HalfEdgeIterator.h>
-#include <igl/triangle_triangle_adjacency.h>
 #include <Eigen/Dense>
+#include <igl/triangle_triangle_adjacency.h>
+#include <igl/HalfEdgeIterator.h>
 #include <iostream>
 #include <set>
 
-#define DEBUG
-
+#include "QuadraticSolver.h"
 using namespace std;
 using namespace Eigen;
 
-set<int> getInternalNodes(const MatrixXd &V, const MatrixXi &F) {
+set<int> QuadraticSolver::getInternalNodes() {
     // The two different sets for nodes
     set<int> borderNodes;
     set<int> internalNodes;

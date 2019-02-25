@@ -1,28 +1,26 @@
-#pragma once
-
 #include <Eigen/Dense>
+#include <igl/HalfEdgeIterator.h>
+#include <igl/triangle_triangle_adjacency.h>
 #include <iostream>
 #include <vector>
 
 #include <QuadProg++/QuadProg++.hh>
-#include "GetInternalNodes.h"
+#include "QuadraticSolver.h"
 
 using namespace std;
 using namespace Eigen;
 namespace qp = quadprogpp;
-#define DEBUG
 
 // A method for getting each "real" weight for the vertices
 // TODO: figure out how to read in the "real" weights, as we are just using 2
 // for each one right now
-qp::Matrix<double> getForces(const MatrixXd &V, const MatrixXi &F,
-                             int numInternal) {
+qp::Matrix<double> QuadraticSolver::getForces(int numInternal) {
     // Since we currently don't have any information on weights, just
     // return a random number for every vertex of the primal
     return qp::Matrix<double>(15.0, 1, numInternal);
 }
 
-set<pair<int, int>> allEdges(const MatrixXi &F) {
+set<pair<int, int>> QuadraticSolver::allEdges() {
     set<pair<int, int>> edges;
     for (int currFace = 0; currFace < F.rows(); currFace++) {
         RowVector3i face = F.row(currFace);
@@ -34,55 +32,20 @@ set<pair<int, int>> allEdges(const MatrixXi &F) {
     return edges;
 }
 
-// A class to get the index into a matrix of only internal nodes
-class Indexer {
-    int numVert;
-    vector<int> indexes;
-    map<pair<int, int>, int> edgeIndex;
-
-   public:
-    Indexer(int numVertices, set<int> internalNodes,
-            set<pair<int, int>> allEdges)
-        : numVert(numVertices), indexes(numVert) {
-        int matrixIndex = 0;
-        for (int internal : internalNodes) {
-            indexes[internal] = matrixIndex;
-            matrixIndex++;
-        }
-        int matIndexEdge = 0;
-        for (const auto edge : allEdges) {
-            if (edgeIndex.find(edge) == edgeIndex.end()) {
-                edgeIndex[edge] = matIndexEdge;
-                edgeIndex[pair<int, int>(edge.second, edge.first)] =
-                    matIndexEdge;
-                matIndexEdge++;
-            }
-        }
-    }
-
-    int indexVert(int vertex) { return indexes[vertex]; }
-
-    // If the edge is v1 - v2
-    int indexEdge(int v1, int v2) { return edgeIndex[pair<int, int>(v1, v2)]; }
-    const map<pair<int, int>, int> &edgeMap() { return edgeIndex; }
-};
-
 // V and Weights will have the same number of entries
 // F just allows for us to collect faces
-map<pair<int, int>, int> getWeights(const MatrixXd &V,
-                                            const MatrixXi &F) {
-    // set<int> internalNodes = getInternal(V, F);
+map<pair<int, int>, int> QuadraticSolver::getWeights() {
     // We will only ever constrain or check the weights of internal nodes
     // as the others are clamped down at the edges
-    set<int> internalNodes = getInternalNodes(V, F);
     unsigned int rowSize = int(V.innerSize());
     unsigned int internalSize = internalNodes.size();
-    qp::Matrix<double> weights = getForces(V, F, internalSize);
-    set<pair<int, int>> edges = allEdges(F);
+    // Might have to update this, use the method
+    forces = getForces(internalSize);
     if (edges.size() % 2 != 0) {
         cerr << "We do not have an even number of edges!" << endl;
         throw new exception();
     }
+    // Due to the fact that each edge is represented twice in the set
     unsigned int numEdges = edges.size() / 2;
     int ZERO = 0;
     int ONE = 1;
@@ -104,8 +67,6 @@ map<pair<int, int>, int> getWeights(const MatrixXd &V,
     for (unsigned int i = 0; i < identity.nrows(); i++) {
         identity[i][i] = 1;
     }
-    Indexer indr(rowSize, internalNodes, edges);
-
     // Fill up zDiff through going through each triangle and filling in
     for (int i = 0; i < F.rows(); i++) {
         RowVector3i currFace = F.row(i);
@@ -178,5 +139,7 @@ map<pair<int, int>, int> getWeights(const MatrixXd &V,
     for (const auto edge : indr.edgeMap()) {
         toReturn[edge.first] = x[edge.second];
     }
+    weightMap = toReturn;
     return toReturn;
 }
+

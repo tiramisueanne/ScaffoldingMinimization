@@ -12,12 +12,10 @@
 #include <queue>
 #include <set>
 
-#include "Circumcenter.h"
 #include "GetNewDual.h"
 #include "GetNewPrimal.h"
 #include "HandMesh.h"
-#include "MakeBary.h"
-#include "Weights.h"
+#include "QuadraticSolver.h"
 
 using namespace std;
 using namespace Eigen;
@@ -38,8 +36,8 @@ int main(int argc, char *argv[]) {
     }
 
     // This is the flood fill of finding the gradient and creating newVertices
-    // MatrixXd dualVerts = getCircumcenters(V, F);
-    map<pair<int, int>, int> edgeWeights = getWeights(V, F);
+    QuadraticSolver qs(V, F);
+    map<pair<int, int>, int> edgeWeights = qs.getWeights();
     #ifdef DEBUG
     for(const auto edge : edgeWeights) {
         cout << "pair: " << edge.first.first << " , " << edge.first.second << " and the value " << edge.second << endl;
