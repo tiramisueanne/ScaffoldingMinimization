@@ -34,7 +34,7 @@ set<pair<int, int>> QuadraticSolver::allEdges() {
 
 // V and Weights will have the same number of entries
 // F just allows for us to collect faces
-map<pair<int, int>, int> QuadraticSolver::getWeights() {
+const map<pair<int, int>, int>& QuadraticSolver::getWeights() {
     // We will only ever constrain or check the weights of internal nodes
     // as the others are clamped down at the edges
     unsigned int rowSize = int(V.innerSize());
@@ -106,17 +106,21 @@ map<pair<int, int>, int> QuadraticSolver::getWeights() {
         }
     }
 
-    qp::Vector<double> x(2, numEdges);
+    weights = qp::Vector<double>(2, numEdges);
+    // qp::Matrix<double> mWeights(numEdges, 1);
+    // mWeights.setColumn(0, weights);
     qp::Vector<double> justOnes(1, numEdges);
     // The vector we add to the result of the constraint
     qp::Vector<double> justZerosForXY(0.0, internalSize * 2);
     qp::Vector<double> justZerosForPos(0.0, numEdges);
 
-    // qp::Matrix<double> weightsT = t(weights);
-    qp::Vector<double> linearComponent(dot_prod(weights, zDiff));
+    // Since weights is already a row vector, we do not have to
+    // transpose it
+    qp::Matrix<double> zDiffT = t(zDiff);
+    qp::Vector<double> linearComponent(dot_prod(weights, zDiffT));
+
     // To construct the positive definite zDiff matrix, we must
     // multiply it with itself
-    qp::Matrix<double> zDiffT = t(zDiff);
     zDiff = dot_prod(zDiffT, zDiff);
     zDiff *= 2;
     zDiff += (identity *= pow(10, -9));
@@ -131,15 +135,13 @@ map<pair<int, int>, int> QuadraticSolver::getWeights() {
 #endif
     double success =
         qp::solve_quadprog(zDiff, linearComponent, xyDiff, justZerosForXY,
-                           identity, justZerosForPos, x);
+                           identity, justZerosForPos, weights);
 #ifdef DEBUG
     cout << "The success value was" << success << endl;
 #endif
-    map<pair<int, int>, int> toReturn;
     for (const auto edge : indr.edgeMap()) {
-        toReturn[edge.first] = x[edge.second];
+        weightMap[edge.first] = weights[edge.second];
     }
-    weightMap = toReturn;
-    return toReturn;
+    return weightMap;
 }
 

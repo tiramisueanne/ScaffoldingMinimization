@@ -18,7 +18,7 @@ class QuadraticSolver {
     };
 
     // This is to calculate weights from our estimated forces on the structure
-    map<pair<int, int>, int> getWeights();
+    const map<pair<int, int>, int>& getWeights();
 
     // This is to update the vertices with weights given to edges fixed
     void updateVertices();
