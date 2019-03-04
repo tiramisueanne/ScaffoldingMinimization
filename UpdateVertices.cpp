@@ -6,7 +6,7 @@ using namespace std;
 using namespace Eigen;
 
 namespace qp = quadprogpp;
-#define DEBUG
+// #define DEBUG
 
 double QuadraticSolver::updateVertices() {
     // Create the new thing to optimize, which is all the points of

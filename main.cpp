@@ -40,10 +40,15 @@ int main(int argc, char *argv[]) {
     double succ = 0;
     double sum = qs.getTotalForce();
     sum *= sum;
-    while (abs(succ + sum) > 0.001) {
+    int count = 0;
+    while (abs(succ + sum) > 0.001 && count < 30) {
         succ = 0;
         succ += qs.updateWeights();
         qs.updateVertices();
+        count++;
+    }
+    if(count == 30) {
+        cout << "Iterated on this shape 30 times" << endl;
     }
 
 #ifdef DUALS
