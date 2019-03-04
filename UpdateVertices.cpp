@@ -6,6 +6,7 @@ using namespace std;
 using namespace Eigen;
 
 namespace qp = quadprogpp;
+#define DEBUG
 
 double QuadraticSolver::updateVertices() {
     // Create the new thing to optimize, which is all the points of
@@ -24,6 +25,9 @@ double QuadraticSolver::updateVertices() {
 
     qp::Matrix<double> xyValues(ZERO, internalNodes.size() * 2,
                                 internalNodes.size() * V.cols());
+
+    qp::Vector<double> zConstant(ZERO, internalNodes.size());
+    qp::Vector<double> xyConstant(ZERO, internalNodes.size() * 2);
 
     // Go through each edge and add weights
     for (const pair<pair<int, int>, double>& edge_weight : weightMap) {
@@ -50,37 +54,59 @@ double QuadraticSolver::updateVertices() {
             xyValues[indr.indexVert(edge.first) * 2]
                     [indr.indexBigVert(edge.second, XDim)] -= weight;
             xyValues[indr.indexVert(edge.first) * 2 + 1]
-                    [indr.indexBigVert(edge.second, YDim)] += weight;
+                    [indr.indexBigVert(edge.second, YDim)] -= weight;
 
         } else {
-            // Using the z values in the first edge's x place
-            zValues[indr.indexVert(edge.first)]
-                   [indr.indexBigVert(edge.first, XDim)] -=
-                weight * V.row(edge.second).z();
+            zConstant[indr.indexVert(edge.first)] -= weight * V.row(edge.second).z();
 
-            // use the x and y values in the z place
-            xyValues[indr.indexVert(edge.first) * 2]
-                    [indr.indexBigVert(edge.first, ZDim)] -=
-                weight * V.row(edge.second).x();
-            xyValues[indr.indexVert(edge.first) * 2 + 1]
-                    [indr.indexBigVert(edge.first, ZDim)] -=
-                weight * V.row(edge.second).y();
+            xyConstant[indr.indexVert(edge.first) * 2]
+                -= weight * V.row(edge.second).x();
+            xyConstant[indr.indexVert(edge.first) * 2 + 1]
+                -= weight * V.row(edge.second).y();
         }
     }
-    qp::Vector<double> zAllZeros(ZERO, internalNodes.size());
-    qp::Vector<double> xyAllZeros(ZERO, internalNodes.size() * 2);
+
     // Our quadratic var
-    qp::Matrix<double> vecMat(vec.size(), vec.size());
     qp::Matrix<double> vecToPass(ZERO, vec.size(), vec.size());
-    vecToPass *= 2;
     for (int i = 0; i < vecToPass.nrows(); i++) {
         vecToPass[i][i] += 1 + pow(10, -6);
     }
-    qp::Vector<double> linearComp = vec *= 2;
-    vec /= 2;
+    vecToPass *= 2;
+
+    qp::Vector<double> linearComp = vec *= -2;
+    vec /= -2;
+#ifdef DEBUG
+    cout << "vec used to be ";
+    for (int i = 0; i < vec.size(); i++) {
+        cout << vec[i] << endl;
+    }
+    cout << "linear comp used to be";
+    for (int i = 0; i < vec.size(); i++) {
+        cout << linearComp[i] << endl;
+    }
+    cout << "The zValues are " << endl;
+    for (int i = 0; i < zValues.nrows(); i++) {
+        for (int j = 0; j < zValues.ncols(); j++) {
+            cout << zValues[i][j] << " ";
+        }
+        cout << endl;
+    }
+#endif
     double success =
-        qp::solve_quadprog(vecToPass, linearComp, t(zValues), zAllZeros,
-                           t(xyValues), xyAllZeros, vec);
-    // Could update something here
+        qp::solve_quadprog(vecToPass, linearComp, t(zValues), zConstant,
+                           t(xyValues), xyConstant, vec);
+#ifdef DEBUG
+    cout << "The success value of updating was " << success << endl;
+#endif
+    moveVecIntoV();
     return success;
+}
+
+void QuadraticSolver::moveVecIntoV() {
+    for (int i = 0; i < vec.size(); i++) {
+        V(i / V.cols(), i % V.cols()) = vec[i];
+#ifdef DEBUG
+        cout << "vec at " << i << " was " << vec[i] << endl;
+#endif
+    }
 }

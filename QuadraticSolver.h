@@ -48,6 +48,7 @@ class QuadraticSolver {
         }
         return total;
     }
+    void moveVecIntoV();
 
     MatrixXd &V;
     qp::Vector<double> vec;

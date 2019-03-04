@@ -4,11 +4,11 @@
 #include <igl/triangle_triangle_adjacency.h>
 #include <Eigen/Dense>
 
-#include <map>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <iostream>
+#include <map>
 #include <queue>
 #include <set>
 
@@ -40,24 +40,31 @@ int main(int argc, char *argv[]) {
     double succ = 0;
     double sum = qs.getTotalForce();
     sum *= sum;
-    while (abs(succ + sum) > 0.01) {
+    while (abs(succ + sum) > 0.001) {
         succ = 0;
         succ += qs.updateWeights();
-        cout << "The succ is " << succ << endl;
         qs.updateVertices();
     }
 
+#ifdef DUALS
     MatrixXd dualVerts = getNewDual(V, F, qs.getWeights());
     MatrixXd newVerts = getNewPrimal(dualVerts, V, F);
-    #ifdef DEBUG
+#endif
+
+#if defined(DUALS) && defined(DEBUG)
     cout << "The new verts are " << newVerts << endl;
     cout << "The first one is" << newVerts.row(0);
-    #endif
+#endif
 
     // utilize libigl's viewer
     igl::opengl::glfw::Viewer viewer;
-    // viewer.data().set_mesh(newVerts, F);
+    viewer.data().set_mesh(qs.V, qs.F);
+
+
+    // Place dual points if we have them
+#ifdef DUALS
     viewer.data().add_points(dualVerts, RowVector3d(10, 10, 100));
+#endif
 
     // Compile the weights file
     viewer.launch();
