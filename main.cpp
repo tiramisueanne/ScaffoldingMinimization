@@ -39,8 +39,11 @@ int main(int argc, char *argv[]) {
     QuadraticSolver qs(V, F);
     double succ = 0;
     double sum = qs.getTotalForce();
-    while (abs(succ + sum) > 0) {
-        qs.updateWeights();
+    sum *= sum;
+    while (abs(succ + sum) > 0.01) {
+        succ = 0;
+        succ += qs.updateWeights();
+        cout << "The succ is " << succ << endl;
         qs.updateVertices();
     }
 

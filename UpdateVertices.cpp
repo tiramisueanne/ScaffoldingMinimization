@@ -35,12 +35,11 @@ double QuadraticSolver::updateVertices() {
             zValues[indr.indexVert(edge.first)]
                    [indr.indexBigVert(edge.first, ZDim)] += weight;
             xyValues[indr.indexVert(edge.first) * 2]
-                [indr.indexBigVert(edge.first, XDim)] += weight;
+                    [indr.indexBigVert(edge.first, XDim)] += weight;
             xyValues[indr.indexVert(edge.first) * 2 + 1]
-                [indr.indexBigVert(edge.first, YDim)] += weight;
+                    [indr.indexBigVert(edge.first, YDim)] += weight;
 
-        }
-        else {
+        } else {
             continue;
         }
 
@@ -49,9 +48,9 @@ double QuadraticSolver::updateVertices() {
             zValues[indr.indexVert(edge.first)]
                    [indr.indexBigVert(edge.second, ZDim)] -= weight;
             xyValues[indr.indexVert(edge.first) * 2]
-                [indr.indexBigVert(edge.second, XDim)] -= weight;
+                    [indr.indexBigVert(edge.second, XDim)] -= weight;
             xyValues[indr.indexVert(edge.first) * 2 + 1]
-                [indr.indexBigVert(edge.second, YDim)] += weight;
+                    [indr.indexBigVert(edge.second, YDim)] += weight;
 
         } else {
             // Using the z values in the first edge's x place
@@ -61,12 +60,27 @@ double QuadraticSolver::updateVertices() {
 
             // use the x and y values in the z place
             xyValues[indr.indexVert(edge.first) * 2]
-                [indr.indexBigVert(edge.first, ZDim)] -= weight * V.row(edge.second).x();
+                    [indr.indexBigVert(edge.first, ZDim)] -=
+                weight * V.row(edge.second).x();
             xyValues[indr.indexVert(edge.first) * 2 + 1]
-                [indr.indexBigVert(edge.first, ZDim)] -= weight * V.row(edge.second).y();
-
+                    [indr.indexBigVert(edge.first, ZDim)] -=
+                weight * V.row(edge.second).y();
         }
     }
     qp::Vector<double> zAllZeros(ZERO, internalNodes.size());
     qp::Vector<double> xyAllZeros(ZERO, internalNodes.size() * 2);
+    // Our quadratic var
+    qp::Matrix<double> vecMat(vec.size(), vec.size());
+    qp::Matrix<double> vecToPass(ZERO, vec.size(), vec.size());
+    vecToPass *= 2;
+    for (int i = 0; i < vecToPass.nrows(); i++) {
+        vecToPass[i][i] += 1 + pow(10, -6);
+    }
+    qp::Vector<double> linearComp = vec *= 2;
+    vec /= 2;
+    double success =
+        qp::solve_quadprog(vecToPass, linearComp, t(zValues), zAllZeros,
+                           t(xyValues), xyAllZeros, vec);
+    // Could update something here
+    return success;
 }
