@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
     // This is the flood fill of finding the gradient and creating newVertices
     QuadraticSolver qs(V, F);
     double succ = 0;
-    double sum = 0;
+    double sum = qs.getTotalForce();
     while (abs(succ + sum) > 0) {
         qs.updateWeights();
         qs.updateVertices();

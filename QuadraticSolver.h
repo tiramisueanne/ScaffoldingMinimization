@@ -42,7 +42,8 @@ class QuadraticSolver {
 
     double getTotalForce() {
         double total = 0;
-        for(int i = 0; i < internalNodes.size(); i++) {
+        forces = getForces();
+        for(int i = 0; i < forces.ncols(); i++) {
             total += forces[0][i];
         }
         return total;
