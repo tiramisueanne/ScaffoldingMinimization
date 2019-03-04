@@ -15,12 +15,14 @@ class Indexer {
 
     inline int indexVert(int vertex) { return indexes[vertex]; }
 
+
     // If the edge is v1 - v2
     inline int indexEdge(int v1, int v2) {
         return edgeIndex[pair<int, int>(v1, v2)];
     }
 
     inline const map<pair<int, int>, int> &edgeMap() { return edgeIndex; }
+
 };
 
 inline Indexer::Indexer(int numVertices, set<int> internalNodes,

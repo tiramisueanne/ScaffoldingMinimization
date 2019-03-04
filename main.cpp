@@ -37,19 +37,24 @@ int main(int argc, char *argv[]) {
 
     // This is the flood fill of finding the gradient and creating newVertices
     QuadraticSolver qs(V, F);
-    map<pair<int, int>, int> edgeWeights = qs.getWeights();
-    #ifdef DEBUG
-    for(const auto edge : edgeWeights) {
-        cout << "pair: " << edge.first.first << " , " << edge.first.second << " and the value " << edge.second << endl;
+    double succ = 0;
+    double sum = 0;
+    while (abs(succ + sum) > 0) {
+        qs.updateWeights();
+        qs.updateVertices();
     }
-    #endif
-    MatrixXd dualVerts = getNewDual(V, F, edgeWeights);
-    cout << dualVerts << endl;
+
+    MatrixXd dualVerts = getNewDual(V, F, qs.getWeights());
     MatrixXd newVerts = getNewPrimal(dualVerts, V, F);
+    #ifdef DEBUG
+    cout << "The new verts are " << newVerts << endl;
+    cout << "The first one is" << newVerts.row(0);
+    #endif
 
     // utilize libigl's viewer
     igl::opengl::glfw::Viewer viewer;
-    viewer.data().set_mesh(newVerts, F);
+    // viewer.data().set_mesh(newVerts, F);
+    viewer.data().add_points(dualVerts, RowVector3d(10, 10, 100));
 
     // Compile the weights file
     viewer.launch();

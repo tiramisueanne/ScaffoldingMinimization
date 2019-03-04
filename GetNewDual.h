@@ -10,7 +10,7 @@ using namespace std;
 using namespace Eigen;
 
 MatrixXd getNewDual(Eigen::MatrixXd &V, Eigen::MatrixXi &F,
-                    map<pair<int, int>, int> weights) {
+                    map<pair<int, int>, double> weights) {
     // Adjacency matrix
     // TT | F | x 3 matrix where (i,j) is index of face that is adjacent
     // to triangle i on edge j
