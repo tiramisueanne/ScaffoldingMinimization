@@ -65,6 +65,11 @@ double QuadraticSolver::updateVertices() {
                 -= weight * V.row(edge.second).y();
         }
     }
+    // For all forces, go through and add to zValues
+    for(int i = 0; i < forces.ncols(); i++) {
+        //TODO: this requires no indexing right now, because it's all constants
+        zConstant[i] += forces[0][i];
+    }
 
     // Our quadratic var
     qp::Matrix<double> vecToPass(ZERO, vec.size(), vec.size());
