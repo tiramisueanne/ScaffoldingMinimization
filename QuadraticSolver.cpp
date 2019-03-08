@@ -59,8 +59,6 @@ double QuadraticSolver::updateWeights() {
         throw new exception();
     }
 
-    // Bump internal nodes to try to force weights
-    bumpInternalNodes();
     // Due to the fact that each edge is represented twice in the set
     unsigned int numEdges = edges.size() / 2;
     int ZERO = 0;

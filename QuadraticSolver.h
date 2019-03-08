@@ -15,6 +15,7 @@ class QuadraticSolver {
         internalNodes = getInternalNodes();
         edges = allEdges();
         indr = Indexer(V.rows(), internalNodes, edges);
+        createLaplacian();
     };
 
     // This is to calculate weights from our estimated forces on the structure
@@ -38,6 +39,8 @@ class QuadraticSolver {
     set<pair<int, int>> allEdges();
 
     // so that we don't accidentally have all 0's
+    void createLaplacian();
+
     void bumpInternalNodes();
 
     double getTotalForce() {
@@ -48,7 +51,9 @@ class QuadraticSolver {
         }
         return total;
     }
+
     void moveVecIntoV();
+
 
     MatrixXd &V;
     qp::Vector<double> vec;

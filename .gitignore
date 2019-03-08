@@ -33,3 +33,9 @@
 
 build/*
 cmake/*
+
+# GTAGS
+GPATH
+GRTAGS
+GSYMS
+GTAGS
