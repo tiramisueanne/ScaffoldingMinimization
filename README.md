@@ -1,13 +1,11 @@
-#libigl example project
+## Scaffolding Minimizing Construction Strategies for Masonry Buildings
 
-A blank project example showing how to use libigl and cmake. Feel free and
-encouraged to copy or fork this project as a way of starting a new personal
-project using libigl.
+This is originally from a copy of [libigl's sample project](https://github.com/libigl/libigl-example-project), which I have extended.
 
-## See the tutorial first
+This project is an exercise into solving the question of how to build masonry structures to minimize the number of states in which we are 
+unstable. 
+To do this, we first pass in a mesh in which each brick is a vertex (and currently use heuristics for forces), and then utilize the algorithm given in [Design of Self-Supporting Surfaces](http://www.geometrie.tugraz.at/wallner/selfsupporting.pdf) to test for stability, and alter the mesh to become a self-supporting surface.
 
-Then build, run and understand the [libigl
-tutorial](http://libigl.github.io/libigl/tutorial/).
 
 ## Compile
 
