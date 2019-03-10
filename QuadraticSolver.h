@@ -11,11 +11,11 @@ namespace qp = quadprogpp;
 
 class QuadraticSolver {
    public:
-    QuadraticSolver(MatrixXd &_V, MatrixXi &_F) : V(_V), F(_F) {
+    QuadraticSolver(MatrixXd &_V, MatrixXi &_F, bool isHand = false) : V(_V), F(_F) {
         internalNodes = getInternalNodes();
         edges = allEdges();
         indr = Indexer(V.rows(), internalNodes, edges);
-        createLaplacian();
+        createLaplacian(isHand);
     };
 
     // This is to calculate weights from our estimated forces on the structure
@@ -39,7 +39,7 @@ class QuadraticSolver {
     set<pair<int, int>> allEdges();
 
     // so that we don't accidentally have all 0's
-    void createLaplacian();
+    void createLaplacian(bool isHand);
 
     void bumpInternalNodes();
 

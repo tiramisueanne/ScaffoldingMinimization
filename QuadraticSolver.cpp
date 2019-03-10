@@ -11,7 +11,7 @@ using namespace std;
 using namespace Eigen;
 namespace qp = quadprogpp;
 
-// #define DEBUG
+#define DEBUG
 
 // A method for getting each "real" weight for the vertices
 // TODO: figure out how to read in the "real" weights, as we are just using 2
@@ -19,7 +19,7 @@ namespace qp = quadprogpp;
 qp::Matrix<double> QuadraticSolver::getForces() {
     // Since we currently don't have any information on weights, just
     // return a random number for every vertex of the primal
-    return qp::Matrix<double>(-2, 1, internalNodes.size());
+    return qp::Matrix<double>(-2 * pow(10, -4), 1, internalNodes.size());
 }
 
 set<pair<int, int>> QuadraticSolver::allEdges() {
@@ -160,11 +160,12 @@ double QuadraticSolver::updateWeights() {
 #endif
     qp::Vector<double> linearComponent(dot_prod(forces, zDiff));
     linearComponent *= 2;
+
     // To construct the positive definite zDiff matrix, we must
     // multiply it with itself
     zDiff = dot_prod(zDiffT, zDiff);
     zDiff *= 2;
-    zDiff += (identity *= pow(10, -9));
+    zDiff += (identity *= pow(10, -6));
 #ifdef DEBUG
     cout << "The ZDiff we pass is " << zDiff << endl;
     cout << "The linearComponent is" << linearComponent << endl;

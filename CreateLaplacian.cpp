@@ -6,7 +6,7 @@
 using namespace std;
 using namespace Eigen;
 
-void QuadraticSolver::createLaplacian() {
+void QuadraticSolver::createLaplacian(bool isHand = false) {
     MatrixXd lap(V.rows(), V.rows());
 
     // Create adjacency matrix first, without doing external rows
@@ -49,6 +49,7 @@ void QuadraticSolver::createLaplacian() {
 
     FullPivLU<MatrixXd> decomp(lap);
     V.col(2) = decomp.solve(onesForBounds);
-    V.col(2) *= pow(10, -3);
-    cout << "The new values of V are:\n " << V << endl;
+    if(!isHand) {
+        V.col(2) *= pow(10, -3);
+    }
 }

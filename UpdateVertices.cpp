@@ -6,7 +6,7 @@ using namespace std;
 using namespace Eigen;
 
 namespace qp = quadprogpp;
-// #define DEBUG
+#define DEBUG
 
 double QuadraticSolver::updateVertices() {
     // Create the new thing to optimize, which is all the points of
@@ -57,24 +57,26 @@ double QuadraticSolver::updateVertices() {
                     [indr.indexBigVert(edge.second, YDim)] -= weight;
 
         } else {
-            zConstant[indr.indexVert(edge.first)] -= weight * V.row(edge.second).z();
-
-            xyConstant[indr.indexVert(edge.first) * 2]
-                -= weight * V.row(edge.second).x();
-            xyConstant[indr.indexVert(edge.first) * 2 + 1]
-                -= weight * V.row(edge.second).y();
+            zConstant[indr.indexVert(edge.first)] -=
+                weight * V.row(edge.second).z();
+            xyConstant[indr.indexVert(edge.first) * 2] -=
+                weight * V.row(edge.second).x();
+            cout << "We are subtracting " << weight * V.row(edge.second).x() << " from " << indr.indexVert(edge.first) * 2 << endl;
+            xyConstant[indr.indexVert(edge.first) * 2 + 1] -=
+                weight * V.row(edge.second).y();
         }
     }
+
     // For all forces, go through and add to zValues
-    for(int i = 0; i < forces.ncols(); i++) {
-        //TODO: this requires no indexing right now, because it's all constants
+    for (int i = 0; i < forces.ncols(); i++) {
+        // TODO: this requires no indexing right now, because it's all constants
         zConstant[i] += forces[0][i];
     }
 
     // Our quadratic var
     qp::Matrix<double> vecToPass(ZERO, vec.size(), vec.size());
     for (int i = 0; i < vecToPass.nrows(); i++) {
-        vecToPass[i][i] += 1 + pow(10, -6);
+        vecToPass[i][i] += 1;
     }
     vecToPass *= 2;
 
@@ -96,12 +98,38 @@ double QuadraticSolver::updateVertices() {
         }
         cout << endl;
     }
+    cout << "The xyValues are" << endl;
+    for (int i = 0; i < xyValues.nrows(); i++) {
+        for (int j = 0; j < xyValues.ncols(); j++) {
+            cout << xyValues[i][j] << " ";
+        }
+        cout << endl;
+    }
+    cout << "The xyConsts are " << endl;
+    for (int i = 0; i < xyConstant.size(); i++) {
+        cout << xyConstant[i] << " ";
+    }
+    cout << endl;
 #endif
     double success =
         qp::solve_quadprog(vecToPass, linearComp, t(zValues), zConstant,
                            t(xyValues), xyConstant, vec);
 #ifdef DEBUG
     cout << "The success value of updating was " << success << endl;
+
+    qp::Vector<double> response = (dot_prod(zValues, vec));
+    cout << "The response value was:\n";
+    for (int i = 0; i < response.size(); i++) {
+        cout << response[i] << "and the zConst was" << zConstant[i] << endl;
+    }
+    qp::Vector<double> responseXY = (dot_prod(xyValues, vec));
+    cout << "The response value for xy was:\n";
+    for (int i = 0; i < response.size(); i++) {
+        cout << responseXY[2 * i] << "and the xConst was" << xyConstant[2 * i]
+             << endl;
+        cout << " while the yResp was" << responseXY[2 * i + 1]
+             << "and the yConst was " << xyConstant[2 * i + 1] << endl;
+    }
 #endif
     moveVecIntoV();
     return success;
