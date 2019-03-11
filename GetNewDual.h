@@ -12,7 +12,7 @@ using namespace Eigen;
 bool isMatch(RowVector3i otherFace, int oneEnd, int otherEnd);
 bool isOrthogonal(RowVector3d edge1, RowVector3d edge2);
 
-MatrixXd getNewDual(Eigen::MatrixXd &V, Eigen::MatrixXi &F,
+MatrixXd getNewDual(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F,
                     map<pair<int, int>, double> weights) {
     // Adjacency matrix
     // TT | F | x 3 matrix where (i,j) is index of face that is adjacent
@@ -35,9 +35,7 @@ MatrixXd getNewDual(Eigen::MatrixXd &V, Eigen::MatrixXi &F,
     facesToFill.push(firstFace);
 
     MatrixXd turnLeft(3, 3);
-    turnLeft << 0, 1, 0,
-        -1, 0, 0,
-        0, 0, 1;
+    turnLeft << 0, 1, 0, -1, 0, 0, 0, 0, 1;
 
     // while we still have faces to fill, fill them!
     while (!facesToFill.empty()) {
@@ -51,30 +49,48 @@ MatrixXd getNewDual(Eigen::MatrixXd &V, Eigen::MatrixXi &F,
             // This only turns the correct way due to all faces being
             // clockwise
             RowVector3i faceVerts = F.row(curFace);
-            MatrixXd curFaceDualCenter = newVerts.row(curFace);
-            for (int vert = 0; vert < 3; vert++) {
-                int adjFace = TT(curFace, vert);
+            RowVector3d curFaceDualCenter = newVerts.row(curFace);
+            for (int edgeInd = 0; edgeInd < 3; edgeInd++) {
+                int adjFace = TT(curFace, edgeInd);
+                // If we have already filled this face, we don't need to set it
+                if (filledFaces.find(adjFace) != filledFaces.end()) {
+                    continue;
+                }
+
                 // If there is no adjacent face along this edge
                 if (adjFace == -1) {
                     continue;
                 }
-                int nextVert = (vert + 1) % 3;
-                // Currently a row vector, but we need it to be col
+
+                // Calculate the edge we are going to move
+                int nextEdgeInd = (edgeInd + 1) % 3;
+                int vert = faceVerts(edgeInd);
+                int nextVert = faceVerts(nextEdgeInd);
+
+                // Calculate the edge, then scale and turn left
                 RowVector3d edge = V.row(nextVert) - V.row(vert);
-                // Scale and turn left
-                Vector3d leftEdge = edge * turnLeft *
-                                    weights.at(pair<int, int>(vert, nextVert));
-                RowVector3d edgeRow = edge.row(0);
-                if(!isOrthogonal(edge, leftEdge)) {
-                    cerr << "The dual we are producing is not creating orthogonal edges!" << endl;
+                RowVector3d leftEdge =
+                    edge * turnLeft *
+                    weights.at(pair<int, int>(vert, nextVert));
+#ifdef DEBUG
+                cout << "we computed leftEdge" << leftEdge << " with edge "
+                     << edge << endl;
+
+#endif
+                if (!isOrthogonal(edge, leftEdge)) {
+                    cerr << "The dual we are producing is not creating "
+                            "orthogonal edges!"
+                         << endl;
                     cerr << "the edge is " << edge << endl;
                     cerr << "The left one is " << leftEdge << endl;
                     throw new exception();
                 }
-                MatrixXd adjFaceDualCenter =
-                    leftEdge + curFaceDualCenter.transpose().col(0);
-                RowVector3d adjFaceRow = adjFaceDualCenter.transpose().row(0);
-                newVerts.row(adjFace) = adjFaceRow;
+                RowVector3d adjFaceDualCenter = leftEdge + curFaceDualCenter;
+#ifdef DEBUG
+                cout << "we placed " << adjFaceDualCenter << " in row "
+                     << adjFace << " from computing with " << curFace << endl;
+#endif
+                newVerts.row(adjFace) = adjFaceDualCenter;
                 facesToFill.push(adjFace);
             }
             filledFaces.insert(curFace);
@@ -91,6 +107,7 @@ MatrixXd getNewDual(Eigen::MatrixXd &V, Eigen::MatrixXi &F,
 // Dual checking
 bool checkDual(MatrixXd &dualVerts, MatrixXd &V, MatrixXi &F,
                map<pair<int, int>, double> weights) {
+    cout << "Entering checkDual..." << endl;
     // go through each face and check its neighbors
     Eigen::MatrixXi TT;
     Eigen::MatrixXi TTi;
@@ -104,7 +121,6 @@ bool checkDual(MatrixXd &dualVerts, MatrixXd &V, MatrixXi &F,
                 RowVector3d neighborDual = dualVerts.row(TT(i, j));
                 RowVector3d dualDiff = currDual - neighborDual;
 
-                // TODO: make sure that this is the correct edge to look at
                 int edgeIndex = j;
                 int oneEnd = F(i, j);
                 int otherEnd = F(i, (j + 1) % 3);
@@ -116,12 +132,13 @@ bool checkDual(MatrixXd &dualVerts, MatrixXd &V, MatrixXi &F,
                     throw new exception();
                 }
 
-                RowVector3d edgeDiff = V.row(oneEnd) - V.row(otherEnd);
+                RowVector3d edgeDiff = V.row(otherEnd) - V.row(oneEnd);
                 if (!isOrthogonal(edgeDiff, dualDiff)) {
                     cout << "The dual edge was " << dualDiff
                          << " and the edge was" << edgeDiff << endl;
                     cout << "The currDual is" << i << endl;
                     cout << "The neighbor dual is" << TT(i, j) << endl;
+                    cout << "The index of edge was " << j << endl;
                     cerr << "The dualEdge and edgeDiff are not orthogonal!"
                          << endl;
                     return false;
@@ -146,7 +163,6 @@ bool checkDual(MatrixXd &dualVerts, MatrixXd &V, MatrixXi &F,
 
 bool isOrthogonal(RowVector3d edge1, RowVector3d edge2) {
     double res = edge1.dot(edge2);
-    cout << "The result of ortho is" << res << endl;
     return abs(res) < 0.0001;
 }
 
