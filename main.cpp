@@ -19,8 +19,9 @@
 
 using namespace std;
 using namespace Eigen;
-// #define DEBUG
+#define DEBUG
 // #define SHOW_POISSON
+#define DUALS
 
 int main(int argc, char *argv[]) {
     // Reading in the primal V, F files
@@ -46,14 +47,13 @@ int main(int argc, char *argv[]) {
     double sum = qs.getTotalForce();
     sum *= sum;
     int count = 0;
-    cout << "The original was\n " << qs.V << " and\n " << qs.F << endl;
-    #ifdef DEBUG
-    int countStop = 1;
-    #endif
-    #ifndef DEBUG
+    // #ifdef DEBUG
+    // int countStop = 1;
+    // #endif
+    // #ifndef DEBUG
     int countStop = 30;
-    #endif
-    #ifndef SHOW_POISSON
+// #endif
+#if !defined(SHOW_POISSON) && !defined(DUALS)
     while (abs(succ + sum) > 0.00000001 && count < countStop) {
         succ = 0;
         succ += qs.updateWeights();
@@ -61,11 +61,16 @@ int main(int argc, char *argv[]) {
         qs.updateVertices();
         count++;
     }
-    cout << "Iterated on this shape "<< count << " times" << endl;
-    #endif
+    cout << "Iterated on this shape " << count << " times" << endl;
+#endif
 
 #ifdef DUALS
+    qs.updateWeights();
     MatrixXd dualVerts = getNewDual(V, F, qs.getWeights());
+    if(!checkDual(dualVerts, V, F, qs.getWeights())) {
+        cerr << "dual is messed up" << endl;
+        throw new exception();
+    }
     MatrixXd newVerts = getNewPrimal(dualVerts, V, F);
 #endif
 
@@ -73,12 +78,18 @@ int main(int argc, char *argv[]) {
     cout << "The new verts are " << newVerts << endl;
     cout << "The first one is" << newVerts.row(0);
 #endif
+#ifdef DUALS
+    MatrixXd &toUse = newVerts;
+#endif
+#ifndef DUALS
+    MatrixXd &toUse = qs.V;
+#endif
 
     // utilize libigl's viewer
     igl::opengl::glfw::Viewer viewer;
-    viewer.data().set_mesh(qs.V, qs.F);
+    viewer.data().set_mesh(toUse, qs.F);
 
-    // Place dual points if we have them
+// Place dual points if we have them
 #ifdef DUALS
     viewer.data().add_points(dualVerts, RowVector3d(10, 10, 100));
 #endif

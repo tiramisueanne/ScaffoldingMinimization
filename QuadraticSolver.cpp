@@ -11,7 +11,7 @@ using namespace std;
 using namespace Eigen;
 namespace qp = quadprogpp;
 
-#define DEBUG
+// #define DEBUG
 
 // A method for getting each "real" weight for the vertices
 // TODO: figure out how to read in the "real" weights, as we are just using 2

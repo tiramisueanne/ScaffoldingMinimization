@@ -6,7 +6,6 @@ This project is an exercise into solving the question of how to build masonry st
 unstable. 
 To do this, we first pass in a mesh in which each brick is a vertex (and currently use heuristics for forces), and then utilize the algorithm given in [Design of Self-Supporting Surfaces](http://www.geometrie.tugraz.at/wallner/selfsupporting.pdf) to test for stability, and alter the mesh to become a self-supporting surface.
 
-
 ## Compile
 
 Compile this project using the standard cmake routine:

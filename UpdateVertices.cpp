@@ -61,7 +61,6 @@ double QuadraticSolver::updateVertices() {
                 weight * V.row(edge.second).z();
             xyConstant[indr.indexVert(edge.first) * 2] -=
                 weight * V.row(edge.second).x();
-            cout << "We are subtracting " << weight * V.row(edge.second).x() << " from " << indr.indexVert(edge.first) * 2 << endl;
             xyConstant[indr.indexVert(edge.first) * 2 + 1] -=
                 weight * V.row(edge.second).y();
         }
@@ -83,6 +82,7 @@ double QuadraticSolver::updateVertices() {
     qp::Vector<double> linearComp = vec *= -2;
     vec /= -2;
 #ifdef DEBUG
+#ifdef VERBOSE
     cout << "vec used to be ";
     for (int i = 0; i < vec.size(); i++) {
         cout << vec[i] << endl;
@@ -109,20 +109,35 @@ double QuadraticSolver::updateVertices() {
     for (int i = 0; i < xyConstant.size(); i++) {
         cout << xyConstant[i] << " ";
     }
-    cout << endl;
 #endif
-    double success =
-        qp::solve_quadprog(vecToPass, linearComp, t(zValues), zConstant,
-                           t(xyValues), xyConstant, vec);
-#ifdef DEBUG
-    cout << "The success value of updating was " << success << endl;
-
+    cout << endl;
     qp::Vector<double> response = (dot_prod(zValues, vec));
-    cout << "The response value was:\n";
+    cout << "The before value was:\n";
     for (int i = 0; i < response.size(); i++) {
         cout << response[i] << "and the zConst was" << zConstant[i] << endl;
     }
     qp::Vector<double> responseXY = (dot_prod(xyValues, vec));
+    cout << "The before value for xy was:\n";
+    for (int i = 0; i < response.size(); i++) {
+        cout << responseXY[2 * i] << "and the xConst was" << xyConstant[2 * i]
+             << endl;
+        cout << " while the yResp was" << responseXY[2 * i + 1]
+             << "and the yConst was " << xyConstant[2 * i + 1] << endl;
+    }
+
+#endif
+    // xyConstant should be =, while zValue can be >=
+    double success = qp::solve_quadprog(vecToPass, linearComp, t(xyValues),
+                                        xyConstant, t(zValues), zConstant, vec);
+#ifdef DEBUG
+    cout << "The success value of updating was " << success << endl;
+
+    response = (dot_prod(zValues, vec));
+    cout << "The response value was:\n";
+    for (int i = 0; i < response.size(); i++) {
+        cout << response[i] << "and the zConst was" << zConstant[i] << endl;
+    }
+    responseXY = (dot_prod(xyValues, vec));
     cout << "The response value for xy was:\n";
     for (int i = 0; i < response.size(); i++) {
         cout << responseXY[2 * i] << "and the xConst was" << xyConstant[2 * i]
