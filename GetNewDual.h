@@ -94,7 +94,7 @@ bool checkDual(MatrixXd &dualVerts, MatrixXd &V, MatrixXi &F,
                 RowVector3d dualDiff = currDual - neighborDual;
 
                 int oneEnd = F(i, j);
-                int otherEnd = F(i, (j + 1 % 3));
+                int otherEnd = F(i, (j + 1) % 3);
                 RowVector3d edgeDiff = V.row(oneEnd) - V.row(otherEnd);
 
                 // dot product of these two
