@@ -100,6 +100,7 @@ bool checkDual(MatrixXd &dualVerts, MatrixXd &V, MatrixXi &F,
                 // dot product of these two
                 double res = dualDiff.dot(edgeDiff);
                 if (abs(res) > 0.0001) {
+                    cout << "The two dual edge was " << dualDiff << " and the edge was" << edgeDiff << endl;
                     cout << "The dot product of dual and the actual edge is "
                          << res << endl;
                     cout << "The currDual is" << i << endl;

@@ -22,6 +22,7 @@ using namespace Eigen;
 #define DEBUG
 // #define SHOW_POISSON
 #define DUALS
+#define CHECKDUALS
 
 int main(int argc, char *argv[]) {
     // Reading in the primal V, F files
@@ -67,10 +68,12 @@ int main(int argc, char *argv[]) {
 #ifdef DUALS
     qs.updateWeights();
     MatrixXd dualVerts = getNewDual(V, F, qs.getWeights());
+#ifdef CHECKDUALS
     if(!checkDual(dualVerts, V, F, qs.getWeights())) {
         cerr << "dual is messed up" << endl;
         throw new exception();
     }
+#endif
     MatrixXd newVerts = getNewPrimal(dualVerts, V, F);
 #endif
 
