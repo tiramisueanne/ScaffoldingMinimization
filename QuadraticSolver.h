@@ -12,7 +12,7 @@ namespace qp = quadprogpp;
 class QuadraticSolver {
    public:
     QuadraticSolver(MatrixXd &_V, MatrixXi &_F, bool isHand = false) : V(_V), F(_F) {
-        internalNodes = getInternalNodes();
+        internalNodes = getInternalNodes(F, V);
         edges = allEdges();
         indr = Indexer(V.rows(), internalNodes, edges);
         createLaplacian(isHand);
@@ -34,6 +34,8 @@ class QuadraticSolver {
     // This is to calculate all of the edges in the figure
     // Used to find all internal nodes
     set<int> getInternalNodes();
+
+    static set<int> getInternalNodes(const MatrixXi &_F, const MatrixXd &_V);
 
     // Used to get all of the edges we need
     set<pair<int, int>> allEdges();

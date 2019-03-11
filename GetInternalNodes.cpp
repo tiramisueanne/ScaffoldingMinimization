@@ -8,7 +8,7 @@
 using namespace std;
 using namespace Eigen;
 
-set<int> QuadraticSolver::getInternalNodes() {
+set<int> QuadraticSolver::getInternalNodes(const MatrixXi &_F, const MatrixXd &_V) {
     // The two different sets for nodes
     set<int> borderNodes;
     set<int> internalNodes;
@@ -20,12 +20,12 @@ set<int> QuadraticSolver::getInternalNodes() {
     // TT(i,j) that is adjacent to triangle i
     Eigen::MatrixXi TT;
     Eigen::MatrixXi TTi;
-    igl::triangle_triangle_adjacency(F, TT, TTi);
+    igl::triangle_triangle_adjacency(_F, TT, TTi);
 
     // Go through each face and add each vertex
-    for (int currFace = 0; currFace < F.rows(); currFace++) {
+    for (int currFace = 0; currFace < _F.rows(); currFace++) {
         // While we have already seen this node, find a new node
-        igl::HalfEdgeIterator<MatrixXi, MatrixXi, MatrixXi> halfIt(F, TT, TTi,
+        igl::HalfEdgeIterator<MatrixXi, MatrixXi, MatrixXi> halfIt(_F, TT, TTi,
                                                                    currFace, 0);
         for (int i = 0; i < 3; i++) {
             halfIt.flipV();
@@ -44,7 +44,7 @@ set<int> QuadraticSolver::getInternalNodes() {
         }
 
     }
-    for (int i = 0; i < V.rows(); i++) {
+    for (int i = 0; i < _V.rows(); i++) {
         if (borderNodes.find(i) == borderNodes.end()) {
             internalNodes.insert(i);
         } else {
@@ -53,7 +53,7 @@ set<int> QuadraticSolver::getInternalNodes() {
             #endif
         }
     }
-    if (borderNodes.size() + internalNodes.size() != V.innerSize()) {
+    if (borderNodes.size() + internalNodes.size() != _V.innerSize()) {
         cerr << "The added sizes did not add up!" << endl;
         cerr << borderNodes.size() << endl;
         cerr << internalNodes.size() << endl;

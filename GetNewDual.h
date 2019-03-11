@@ -6,6 +6,8 @@
 #include <map>
 #include <queue>
 
+#include "QuadraticSolver.h"
+
 using namespace std;
 using namespace Eigen;
 
@@ -69,6 +71,18 @@ MatrixXd getNewDual(const Eigen::MatrixXd &V, const Eigen::MatrixXi &F,
 
                 // Calculate the edge, then scale and turn left
                 RowVector3d edge = V.row(nextVert) - V.row(vert);
+                if(weights.find({vert, nextVert}) == weights.end()) {
+                    cerr << "The edge was not in our weights!!" << endl;
+                    cerr << "The edge is comprised of " << vert << " , " << nextVert << endl;
+                    set<int> internalNodes = QuadraticSolver::getInternalNodes(F, V);
+                    if(internalNodes.find(vert) == internalNodes.end() && internalNodes.find(nextVert) == internalNodes.end()) {
+                        cerr << "Neither of these were in our internalNodes either" << endl;
+                    }
+                    else {
+                        cerr << "One of them was an internalNode!" << endl;
+                    }
+                    throw new exception();
+                }
                 RowVector3d leftEdge =
                     edge * turnLeft *
                     weights.at(pair<int, int>(vert, nextVert));
@@ -145,7 +159,7 @@ bool checkDual(MatrixXd &dualVerts, MatrixXd &V, MatrixXi &F,
                 }
                 double dotEdge = edgeDiff.dot(edgeDiff);
                 RowVector3d correctDualLength =
-                    edgeDiff * weights.at({oneEnd, otherEnd});
+                    edgeDiff * weights.at(pair<int, int>({oneEnd, otherEnd}));
                 double dotCorrectLength =
                     correctDualLength.dot(correctDualLength);
                 double dotDualLength = dualDiff.dot(dualDiff);
