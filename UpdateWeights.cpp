@@ -1,6 +1,8 @@
 #include <iostream>
 #include "QuadraticSolver.h"
 
+#define DEBUG
+
 // V and Weights will have the same number of entries
 // F just allows for us to collect faces
 double QuadraticSolver::updateWeights() {
@@ -11,10 +13,15 @@ double QuadraticSolver::updateWeights() {
     // Might have to update this, use the method
     forces = getForces();
 #ifdef DEBUG
-    cout << "The edges we have are ";
-    for (auto edge : edges) {
-        cout << edge.first << " , " << edge.second << endl;
+    cout << "The internalNodes were " << endl;
+    for(auto internalNode : internalNodes) {
+        cout << internalNode << " , ";
     }
+    cout << endl;
+    // cout << "The edges we have are ";
+    // for (auto edge : edges) {
+    //     cout << edge.first << " , " << edge.second << endl;
+    // }
 #endif
     if (edges.size() % 2 != 0) {
         cerr << "We do not have an even number of edges!" << endl;
@@ -63,6 +70,7 @@ double QuadraticSolver::updateWeights() {
 #ifdef DEBUG
                 cout << "We skipped an external Index in filling in our mats"
                      << endl;
+                cout << "The edge was " << endl;
 #endif
                 continue;
             }

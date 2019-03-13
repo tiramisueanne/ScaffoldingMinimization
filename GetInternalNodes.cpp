@@ -7,6 +7,7 @@
 #include "QuadraticSolver.h"
 using namespace std;
 using namespace Eigen;
+// #define DEBUG
 
 set<int> QuadraticSolver::getInternalNodes(const MatrixXi &_F,
                                            const MatrixXd &_V) {
@@ -30,6 +31,7 @@ set<int> QuadraticSolver::getInternalNodes(const MatrixXi &_F,
         igl::HalfEdgeIterator<MatrixXi, MatrixXi, MatrixXi> halfIt(_F, TT, TTi,
                                                                    currFace, 0);
         set<int> edgesCovered;
+        set<int> vertexesCovered;
         for (int i = 0; i < 3; i++) {
             int e = halfIt.Ei();
             if (edgesCovered.find(e) != edgesCovered.end()) {
@@ -43,18 +45,17 @@ set<int> QuadraticSolver::getInternalNodes(const MatrixXi &_F,
             } else {
                 edgesCovered.insert(e);
             }
+            int firstV = halfIt.Vi();
+            // reverse = !reverse
+            halfIt.flipV();
+            int secondV = halfIt.Vi();
+            // reverse = !reverse
+            halfIt.flipV();
 
-            int v = halfIt.Vi();
-            if (borderNodes.find(v) == borderNodes.end() &&
-                internalNodes.find(v) == internalNodes.end()) {
-                if (halfIt.isBorder()) {
-                    borderNodes.insert(halfIt.Vi());
-                    // reverse = !reverse
-                    halfIt.flipV();
-                    borderNodes.insert(halfIt.Vi());
-                    // reverse = !reverse
-                    halfIt.flipV();
-                }
+
+            if (halfIt.isBorder()) {
+                borderNodes.insert(firstV);
+                borderNodes.insert(secondV);
             }
 
             // Go around the triangle
@@ -77,5 +78,13 @@ set<int> QuadraticSolver::getInternalNodes(const MatrixXi &_F,
         cerr << internalNodes.size() << endl;
         throw new exception();
     }
+    #ifdef DEBUG
+    cout << "The internalNodes were " << endl;
+    for(auto &i : internalNodes) {
+        cout << i << " , ";
+    }
+    cout << endl;
+    cout << "Size of internalNodes was" << internalNodes.size() << endl;
+    #endif
     return internalNodes;
 }

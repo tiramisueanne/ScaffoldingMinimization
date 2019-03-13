@@ -129,6 +129,7 @@ double QuadraticSolver::updateVertices() {
     // xyConstant should be =, while zValue can be >=
     double success = qp::solve_quadprog(vecToPass, linearComp, t(xyValues),
                                         xyConstant, t(zValues), zConstant, vec);
+
 #ifdef DEBUG
     cout << "The success value of updating was " << success << endl;
 

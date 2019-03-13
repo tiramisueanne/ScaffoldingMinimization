@@ -12,17 +12,18 @@
 #include <queue>
 #include <set>
 
-#include "GetNewDual.h"
 #include "GetNewPrimal.h"
 #include "HandMesh.h"
+#include "InitBiggerMesh.h"
 #include "QuadraticSolver.h"
 
 using namespace std;
 using namespace Eigen;
 #define DEBUG
 // #define SHOW_POISSON
-#define DUALS
-#define CHECKDUALS
+// #define DUALS
+// #define CHECKDUALS
+#define CHECKBIGMESH
 
 int main(int argc, char *argv[]) {
     // Reading in the primal V, F files
@@ -37,8 +38,14 @@ int main(int argc, char *argv[]) {
     }
     // otherwise, use our hand-made mesh
     else {
+#ifndef CHECKBIGMESH
         initHandMesh(V, F);
         isHand = true;
+#endif
+#ifdef CHECKBIGMESH
+        initBiggerMesh(V, F);
+        isHand = true;
+#endif
     }
 
     // This is the flood fill of finding the gradient and creating newVertices
@@ -48,18 +55,20 @@ int main(int argc, char *argv[]) {
     double sum = qs.getTotalForce();
     sum *= sum;
     int count = 0;
-    // #ifdef DEBUG
-    // int countStop = 1;
-    // #endif
-    // #ifndef DEBUG
+#ifdef DEBUG
+    int countStop = 1;
+#endif
+#ifndef DEBUG
     int countStop = 30;
-// #endif
-#if !defined(SHOW_POISSON) && !defined(DUALS)
+#endif
+#if !defined(DUALS)
     while (abs(succ + sum) > 0.00000001 && count < countStop) {
         succ = 0;
         succ += qs.updateWeights();
         cout << "The success value of succ is " << succ << endl;
-        qs.updateVertices();
+        cout << "The success value of succ and sum is " << sum + succ << endl;
+        double updateSucc = qs.updateVertices();
+        cout << "the success value of updating was " << updateSucc << endl;
         count++;
     }
     cout << "Iterated on this shape " << count << " times" << endl;
@@ -67,9 +76,9 @@ int main(int argc, char *argv[]) {
 
 #ifdef DUALS
     qs.updateWeights();
-    MatrixXd dualVerts = getNewDual(V, F, qs.getWeights());
+    MatrixXd dualVerts = qs.getNewDual();
 #ifdef CHECKDUALS
-    if(!checkDual(dualVerts, V, F, qs.getWeights())) {
+    if (!qs.checkDual(dualVerts)) {
         cerr << "dual is messed up" << endl;
         throw new exception();
     }

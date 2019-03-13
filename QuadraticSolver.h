@@ -56,6 +56,9 @@ class QuadraticSolver {
 
     void moveVecIntoV();
 
+    MatrixXd getNewDual();
+    bool checkDual(MatrixXd &dualVerts);
+
 
     MatrixXd &V;
     qp::Vector<double> vec;
