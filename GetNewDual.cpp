@@ -70,10 +70,10 @@ MatrixXd QuadraticSolver::getNewDual() {
                 // Calculate the edge, then scale and turn left
                 RowVector3d edge = V.row(nextVert) - V.row(vert);
                 if (weightMap.find({vert, nextVert}) == weightMap.end()) {
-                    set<int> internalNodes =
-                        QuadraticSolver::getInternalNodes(F, V);
-                    if (internalNodes.find(vert) == internalNodes.end() &&
-                        internalNodes.find(nextVert) == internalNodes.end()) {
+                    set<int> unsupportedNodes =
+                        QuadraticSolver::getUnsupportedNodes(F, V);
+                    if (unsupportedNodes.find(vert) == unsupportedNodes.end() &&
+                        unsupportedNodes.find(nextVert) == unsupportedNodes.end()) {
                         // TODO: figure out what to do about this case, 
                         weightMap[{vert, nextVert}] = 1;
                         weightMap[{nextVert, vert}] = 1;
@@ -81,7 +81,7 @@ MatrixXd QuadraticSolver::getNewDual() {
                         cerr << "The edge is comprised of " << vert << " , "
                              << nextVert << endl;
                         cerr << "The edge was not in our weightMap!!" << endl;
-                        cerr << "One of them was an internalNode!" << endl;
+                        cerr << "One of them was an unsupportedNode!" << endl;
                         throw new exception();
                     }
                 }

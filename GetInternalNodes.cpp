@@ -9,7 +9,7 @@ using namespace std;
 using namespace Eigen;
 // #define DEBUG
 
-set<int> QuadraticSolver::getInternalNodes(const MatrixXi &_F,
+set<int> QuadraticSolver::getUnsupportedNodes(const MatrixXi &_F,
                                            const MatrixXd &_V) {
     // The two different sets for nodes
     set<int> borderNodes;

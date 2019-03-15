@@ -7,27 +7,28 @@ using namespace Eigen;
 
 namespace qp = quadprogpp;
 #define DEBUG
+#define USE_Z_OPT
 
 double QuadraticSolver::updateVertices() {
     // Create the new thing to optimize, which is all the points of
     // the internal nodes
     int ZERO = 0;
-    vec = qp::Vector<double>(ZERO, internalNodes.size() * V.cols());
-    for (auto row : internalNodes) {
+    vec = qp::Vector<double>(ZERO, unsupportedNodes.size() * V.cols());
+    for (auto row : unsupportedNodes) {
         for (int j = 0; j < V.cols(); j++) {
             vec[indr.indexBigVert(row, j)] = V(row, j);
         }
     }
 
     // Create the new zDiff struct
-    qp::Matrix<double> zValues(ZERO, internalNodes.size(),
-                               internalNodes.size() * V.cols());
+    qp::Matrix<double> zValues(ZERO, unsupportedNodes.size(),
+                               unsupportedNodes.size() * V.cols());
 
-    qp::Matrix<double> xyValues(ZERO, internalNodes.size() * 2,
-                                internalNodes.size() * V.cols());
+    qp::Matrix<double> xyValues(ZERO, unsupportedNodes.size() * 2,
+                                unsupportedNodes.size() * V.cols());
 
-    qp::Vector<double> zConstant(ZERO, internalNodes.size());
-    qp::Vector<double> xyConstant(ZERO, internalNodes.size() * 2);
+    qp::Vector<double> zConstant(ZERO, unsupportedNodes.size());
+    qp::Vector<double> xyConstant(ZERO, unsupportedNodes.size() * 2);
 
     // Go through each edge and add weights
     for (const pair<pair<int, int>, double>& edge_weight : weightMap) {
@@ -35,7 +36,7 @@ double QuadraticSolver::updateVertices() {
         double weight = edge_weight.second;
 
         // If this is a row to constrain
-        if (internalNodes.find(edge.first) != internalNodes.end()) {
+        if (unsupportedNodes.find(edge.first) != unsupportedNodes.end()) {
             zValues[indr.indexVert(edge.first)]
                    [indr.indexBigVert(edge.first, ZDim)] += weight;
             xyValues[indr.indexVert(edge.first) * 2]
@@ -48,7 +49,7 @@ double QuadraticSolver::updateVertices() {
         }
 
         // If this will be affected by our optimized nodes
-        if (internalNodes.find(edge.second) != internalNodes.end()) {
+        if (unsupportedNodes.find(edge.second) != unsupportedNodes.end()) {
             zValues[indr.indexVert(edge.first)]
                    [indr.indexBigVert(edge.second, ZDim)] -= weight;
             xyValues[indr.indexVert(edge.first) * 2]
@@ -165,7 +166,7 @@ double QuadraticSolver::updateVertices() {
 }
 
 void QuadraticSolver::moveVecIntoV() {
-    for (auto row : internalNodes) {
+    for (auto row : unsupportedNodes) {
         for (int j = 0; j < V.cols(); j++) {
             V(row, j) = vec[indr.indexBigVert(row, j)];
         }

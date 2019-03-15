@@ -9,12 +9,12 @@ double QuadraticSolver::updateWeights() {
     // We will only ever constrain or check the weights of internal nodes
     // as the others are clamped down at the edges
     unsigned int rowSize = int(V.innerSize());
-    unsigned int internalSize = internalNodes.size();
+    unsigned int internalSize = unsupportedNodes.size();
     // Might have to update this, use the method
     forces = getForces();
 #ifdef DEBUG
-    cout << "The internalNodes were " << endl;
-    for(auto internalNode : internalNodes) {
+    cout << "The unsupportedNodes were " << endl;
+    for(auto internalNode : unsupportedNodes) {
         cout << internalNode << " , ";
     }
     cout << endl;
@@ -70,7 +70,7 @@ double QuadraticSolver::updateWeights() {
         currPoints.row(2) = V.row(currFace(2));
         for (int j = 0; j < 3; j++) {
             int currIndex = currFace(j);
-            if (internalNodes.find(currIndex) == internalNodes.end()) {
+            if (unsupportedNodes.find(currIndex) == unsupportedNodes.end()) {
 #ifdef DEBUG
                 cout << "We skipped an external Index in filling in our mats"
                      << endl;
@@ -86,9 +86,9 @@ double QuadraticSolver::updateWeights() {
                 const double zDiff1 = currPoints(j, 2) - currPoints(other1, 2);
                 const double xDiff1 = currPoints(j, 0) - currPoints(other1, 0);
                 const double yDiff1 = currPoints(j, 1) - currPoints(other1, 1);
-                if (internalNodes.find(currFace(j)) == internalNodes.end() &&
-                    internalNodes.find(currFace(other1)) ==
-                        internalNodes.end()) {
+                if (unsupportedNodes.find(currFace(j)) == unsupportedNodes.end() &&
+                    unsupportedNodes.find(currFace(other1)) ==
+                        unsupportedNodes.end()) {
                     cout << "skipping an edge due to it not being in the "
                             "internal struct"
                          << endl;
@@ -96,10 +96,12 @@ double QuadraticSolver::updateWeights() {
                 }
                 zDiff[indr.indexVert(currIndex)]
                      [indr.indexEdge(currIndex, index)] = zDiff1;
-#ifdef DEBUG
+#ifdef DEBUG_WHAT
                 cout << "We inserted" << zDiff1
                      << " into zDiff:" << indr.indexVert(currIndex) << " , "
                      << indr.indexEdge(currIndex, other1) << endl;
+#endif
+#ifdef DEBUG
                 cout << "The current vertex is " << currIndex
                      << " and the other vertex is " << index << endl;
 #endif

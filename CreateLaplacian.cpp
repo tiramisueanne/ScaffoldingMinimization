@@ -15,7 +15,7 @@ void QuadraticSolver::createLaplacian(bool isHand = false) {
         for (int j = 0; j < F.cols(); j++) {
             int currRow = F(i, j);
             // We shall do this part in the setting
-            if (internalNodes.find(currRow) == internalNodes.end()) {
+            if (unsupportedNodes.find(currRow) == unsupportedNodes.end()) {
                 continue;
             }
             // Find the two neighbors of currRow from i triangle
@@ -28,7 +28,7 @@ void QuadraticSolver::createLaplacian(bool isHand = false) {
 
     for (int i = 0; i < lap.rows(); i++) {
         // If this is an external row, identity row
-        if (internalNodes.find(i) == internalNodes.end()) {
+        if (unsupportedNodes.find(i) == unsupportedNodes.end()) {
             for (int x = 0; x < lap.cols(); x++) {
                 lap(i, x) = 0;
             }

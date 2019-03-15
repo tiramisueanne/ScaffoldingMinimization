@@ -19,7 +19,7 @@ namespace qp = quadprogpp;
 qp::Matrix<double> QuadraticSolver::getForces() {
     // Since we currently don't have any information on weights, just
     // return a random number for every vertex of the primal
-    return qp::Matrix<double>(-1 , 1, internalNodes.size());
+    return qp::Matrix<double>(-1 , 1, unsupportedNodes.size());
 }
 
 set<pair<int, int>> QuadraticSolver::allEdges() {
@@ -28,8 +28,8 @@ set<pair<int, int>> QuadraticSolver::allEdges() {
         RowVector3i face = F.row(currFace);
         for (int i = 0; i < 3; i++) {
             // If this edge doesn't connect to an internal node
-            if (internalNodes.find(face(i)) == internalNodes.end() &&
-                internalNodes.find(face((i + 1) % 3)) == internalNodes.end()) {
+            if (unsupportedNodes.find(face(i)) == unsupportedNodes.end() &&
+                unsupportedNodes.find(face((i + 1) % 3)) == unsupportedNodes.end()) {
                 continue;
             }
             edges.insert(pair<int, int>(face(i), (face((i + 1) % 3))));
@@ -40,7 +40,7 @@ set<pair<int, int>> QuadraticSolver::allEdges() {
 }
 
 void QuadraticSolver::bumpInternalNodes() {
-    for (auto node : internalNodes) {
+    for (auto node : unsupportedNodes) {
         V.row(node).z() += 2;
 #ifdef DEBUG
         cout << " The internal node z value is " << V.row(node).z() << endl;

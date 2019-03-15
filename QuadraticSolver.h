@@ -11,10 +11,11 @@ namespace qp = quadprogpp;
 
 class QuadraticSolver {
    public:
-    QuadraticSolver(MatrixXd &_V, MatrixXi &_F, bool isHand = false) : V(_V), F(_F) {
-        internalNodes = getInternalNodes(F, V);
+    QuadraticSolver(MatrixXd &_V, MatrixXi &_F, bool isHand = false)
+        : V(_V), F(_F) {
+        unsupportedNodes = getUnsupportedNodes(F, V);
         edges = allEdges();
-        indr = Indexer(V.rows(), internalNodes, edges);
+        indr = Indexer(V.rows(), unsupportedNodes, edges);
         createLaplacian(isHand);
     };
 
@@ -27,15 +28,13 @@ class QuadraticSolver {
     // This is how we estimate the forces
     qp::Matrix<double> getForces();
 
-    const map<pair<int, int>, double>& getWeights() {
-        return weightMap;
-    }
+    const map<pair<int, int>, double> &getWeights() { return weightMap; }
 
     // This is to calculate all of the edges in the figure
     // Used to find all internal nodes
-    set<int> getInternalNodes();
+    set<int> getUnsupportedNodes() { return getUnsupportedNodes(F, V); }
 
-    static set<int> getInternalNodes(const MatrixXi &_F, const MatrixXd &_V);
+    static set<int> getUnsupportedNodes(const MatrixXi &_F, const MatrixXd &_V);
 
     // Used to get all of the edges we need
     set<pair<int, int>> allEdges();
@@ -48,7 +47,7 @@ class QuadraticSolver {
     double getTotalForce() {
         double total = 0;
         forces = getForces();
-        for(int i = 0; i < forces.ncols(); i++) {
+        for (int i = 0; i < forces.ncols(); i++) {
             total += forces[0][i];
         }
         return total;
@@ -59,7 +58,6 @@ class QuadraticSolver {
     MatrixXd getNewDual();
     bool checkDual(MatrixXd &dualVerts);
 
-
     MatrixXd &V;
     qp::Vector<double> vec;
     const MatrixXi &F;
@@ -68,5 +66,5 @@ class QuadraticSolver {
     qp::Vector<double> weights;
     map<pair<int, int>, double> weightMap;
     Indexer indr;
-    set<int> internalNodes;
+    set<int> unsupportedNodes;
 };
