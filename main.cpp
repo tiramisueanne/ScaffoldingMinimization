@@ -22,7 +22,7 @@ using namespace Eigen;
 #define DEBUG
 // #define SHOW_POISSON
 // #define DUALS
-// #define CHECKDUALS
+#define CHECKDUALS
 #define CHECKBIGMESH
 
 int main(int argc, char *argv[]) {
@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
     int countStop = 30;
 #endif
 #if !defined(DUALS)
-    while (abs(succ + sum) > 0.00000001 && count < countStop) {
+    while (abs(succ + sum) > 0.000001 && count < countStop) {
         succ = 0;
         succ += qs.updateWeights();
         cout << "The success value of succ is " << succ << endl;

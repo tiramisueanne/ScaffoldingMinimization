@@ -19,7 +19,7 @@ namespace qp = quadprogpp;
 qp::Matrix<double> QuadraticSolver::getForces() {
     // Since we currently don't have any information on weights, just
     // return a random number for every vertex of the primal
-    return qp::Matrix<double>(-2 * pow(10, -4), 1, internalNodes.size());
+    return qp::Matrix<double>(-1 , 1, internalNodes.size());
 }
 
 set<pair<int, int>> QuadraticSolver::allEdges() {

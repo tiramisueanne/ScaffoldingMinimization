@@ -124,13 +124,15 @@ double QuadraticSolver::updateVertices() {
         cout << " while the yResp was" << responseXY[2 * i + 1]
              << "and the yConst was " << xyConstant[2 * i + 1] << endl;
     }
-
+    cout << "The value of vec was " << vec << endl;
 #endif
     // xyConstant should be =, while zValue can be >=
     double success = qp::solve_quadprog(vecToPass, linearComp, t(xyValues),
                                         xyConstant, t(zValues), zConstant, vec);
 
 #ifdef DEBUG
+
+    cout << "The value of vec is now " << vec << endl;
     cout << "The success value of updating was " << success << endl;
 
     response = (dot_prod(zValues, vec));
@@ -152,10 +154,9 @@ double QuadraticSolver::updateVertices() {
 }
 
 void QuadraticSolver::moveVecIntoV() {
-    for (int i = 0; i < vec.size(); i++) {
-        V(i / V.cols(), i % V.cols()) = vec[i];
-#ifdef DEBUG
-        cout << "vec at " << i << " was " << vec[i] << endl;
-#endif
+    for (auto row : internalNodes) {
+        for (int j = 0; j < V.cols(); j++) {
+            V(row, j) = vec[indr.indexBigVert(row, j)];
+        }
     }
 }

@@ -22,6 +22,10 @@ double QuadraticSolver::updateWeights() {
     // for (auto edge : edges) {
     //     cout << edge.first << " , " << edge.second << endl;
     // }
+    cout << "The vertices are " << endl;
+    for(int i = 0; i < V.rows(); i++) {
+        cout << V.row(i) << endl;
+    }
 #endif
     if (edges.size() % 2 != 0) {
         cerr << "We do not have an even number of edges!" << endl;
@@ -70,7 +74,7 @@ double QuadraticSolver::updateWeights() {
 #ifdef DEBUG
                 cout << "We skipped an external Index in filling in our mats"
                      << endl;
-                cout << "The edge was " << endl;
+                cout << "The node was " << currIndex << endl;
 #endif
                 continue;
             }
@@ -134,8 +138,8 @@ double QuadraticSolver::updateWeights() {
     // multiply it with itself
     zDiff = dot_prod(zDiffT, zDiff);
     zDiff *= 2;
-    zDiff += (identity *= pow(10, -6));
-    identity *= pow(10, 6);
+    zDiff += (identity *= pow(10, -9));
+    identity *= pow(10, 9);
 #ifdef DEBUG
     cout << "The ZDiff we pass is " << zDiff << endl;
     cout << "The linearComponent is" << linearComponent << endl;
@@ -157,3 +161,6 @@ double QuadraticSolver::updateWeights() {
     }
     return success;
 }
+
+
+
