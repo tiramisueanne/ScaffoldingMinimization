@@ -1,7 +1,7 @@
 #include <iostream>
 #include "QuadraticSolver.h"
 
-#define DEBUG
+#define DEBUG_WHAT
 
 // V and Weights will have the same number of entries
 // F just allows for us to collect faces
@@ -96,12 +96,10 @@ double QuadraticSolver::updateWeights() {
                 }
                 zDiff[indr.indexVert(currIndex)]
                      [indr.indexEdge(currIndex, index)] = zDiff1;
-#ifdef DEBUG_WHAT
+#ifdef DEBUG
                 cout << "We inserted" << zDiff1
                      << " into zDiff:" << indr.indexVert(currIndex) << " , "
-                     << indr.indexEdge(currIndex, other1) << endl;
-#endif
-#ifdef DEBUG
+                     << indr.indexEdge(currIndex, index) << endl;
                 cout << "The current vertex is " << currIndex
                      << " and the other vertex is " << index << endl;
 #endif

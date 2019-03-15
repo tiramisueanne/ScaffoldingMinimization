@@ -19,7 +19,7 @@
 
 using namespace std;
 using namespace Eigen;
-#define DEBUG
+// #define DEBUG
 // #define SHOW_POISSON
 // #define DUALS
 #define CHECKDUALS
