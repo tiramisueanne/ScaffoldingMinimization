@@ -74,13 +74,24 @@ double QuadraticSolver::updateVertices() {
 
     // Our quadratic var
     qp::Matrix<double> vecToPass(ZERO, vec.size(), vec.size());
+    qp::Matrix<double> multiplyZVal = dot_prod(t(zValues), zValues);
+    double zValWeight = 1;
+    double movementWeight = 1;
+#ifdef USE_Z_OPT
+    vecToPass += multiplyZVal * zValWeight * zValWeight;
+#endif
     for (int i = 0; i < vecToPass.nrows(); i++) {
-        vecToPass[i][i] += 1;
+        vecToPass[i][i] += movementWeight * movementWeight;
     }
     vecToPass *= 2;
 
-    qp::Vector<double> linearComp = vec *= -2;
-    vec /= -2;
+    // Set up the linear component
+    qp::Vector<double> linearComp = vec;
+#ifdef USE_Z_OPT
+    linearComp *= movementWeight;
+    linearComp += zValWeight * dot_prod(forces, zValues);
+#endif
+    linearComp *= -2;
 #ifdef DEBUG
 #ifdef VERBOSE
     cout << "vec used to be ";
