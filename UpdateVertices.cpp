@@ -127,22 +127,23 @@ double QuadraticSolver::updateVertices() {
     cout << "The before value was:\n";
     for (int i = 0; i < response.size(); i++) {
         cout << response[i] << "and the zConst was" << zConstant[i] << endl;
+        cout << "The addition of resp and zConst is " << response[i] + zConstant[i] << endl;
     }
-    qp::Vector<double> responseXY = (dot_prod(xyValues, vec));
-    cout << "The before value for xy was:\n";
-    for (int i = 0; i < response.size(); i++) {
-        cout << responseXY[2 * i] << "and the xConst was" << xyConstant[2 * i]
-             << endl;
-        cout << " while the yResp was" << responseXY[2 * i + 1]
-             << "and the yConst was " << xyConstant[2 * i + 1] << endl;
-    }
-    cout << "The value of vec was " << vec << endl;
+    // qp::Vector<double> responseXY = (dot_prod(xyValues, vec));
+    // cout << "The before value for xy was:\n";
+    // for (int i = 0; i < response.size(); i++) {
+    //     cout << responseXY[2 * i] << "and the xConst was" << xyConstant[2 * i]
+    //          << endl;
+    //     cout << " while the yResp was" << responseXY[2 * i + 1]
+    //          << "and the yConst was " << xyConstant[2 * i + 1] << endl;
+    // }
+    // cout << "The value of vec was " << vec << endl;
 #endif
     // xyConstant should be =, while zValue can be >=
     double success = qp::solve_quadprog(vecToPass, linearComp, t(xyValues),
                                         xyConstant, t(zValues), zConstant, vec);
 
-#ifdef DEBUG
+#ifdef DEBUG_L
 
     cout << "The value of vec is now " << vec << endl;
     cout << "The success value of updating was " << success << endl;

@@ -8,7 +8,7 @@
 using namespace std;
 using namespace Eigen;
 // #define DEBUG
-#define UNSUPPORT_A_NODE
+// #define UNSUPPORT_A_NODE
 
 set<int> QuadraticSolver::getUnsupportedNodes(const MatrixXi &_F,
                                               const MatrixXd &_V) {

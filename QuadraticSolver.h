@@ -48,7 +48,7 @@ class QuadraticSolver {
         double total = 0;
         forces = getForces();
         for (int i = 0; i < forces.ncols(); i++) {
-            total += forces[0][i];
+            total += forces[0][i] * forces[0][i];
         }
         return total;
     }

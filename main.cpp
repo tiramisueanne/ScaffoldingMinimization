@@ -19,7 +19,7 @@
 
 using namespace std;
 using namespace Eigen;
-// #define DEBUG
+#define DEBUG
 // #define SHOW_POISSON
 // #define DUALS
 #define CHECKDUALS
@@ -53,16 +53,15 @@ int main(int argc, char *argv[]) {
     QuadraticSolver qs(V, F, isHand);
     double succ = 0;
     double sum = qs.getTotalForce();
-    sum *= sum;
     int count = 0;
 #ifdef DEBUG
     int countStop = 1;
 #endif
 #ifndef DEBUG
-    int countStop = 30;
+    int countStop = 1;
 #endif
 #if !defined(DUALS)
-    while (abs(succ + sum) > 0.000001 && count < countStop) {
+    while (fabs(succ + sum) > 0.000001 && count < countStop) {
         succ = 0;
         succ += qs.updateWeights();
         cout << "The success value of succ is " << succ << endl;

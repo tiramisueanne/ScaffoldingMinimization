@@ -8,6 +8,7 @@ using namespace Eigen;
 
 void QuadraticSolver::createLaplacian(bool isHand = false) {
     MatrixXd lap(V.rows(), V.rows());
+    lap.setZero();
 
     // Create adjacency matrix first, without doing external rows
     // For each triangle, set neighbor vertices on correct rows
