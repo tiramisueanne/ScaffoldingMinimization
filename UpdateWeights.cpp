@@ -1,10 +1,8 @@
 #include <iostream>
 #include "QuadraticSolver.h"
+// #define DEBUG
+// #define CHECK_WEIGHTS
 
-#define DEBUG_WHAT
-
-// V and Weights will have the same number of entries
-// F just allows for us to collect faces
 double QuadraticSolver::updateWeights() {
     // We will only ever constrain or check the weights of internal nodes
     // as the others are clamped down at the edges
@@ -14,7 +12,7 @@ double QuadraticSolver::updateWeights() {
     forces = getForces();
 #ifdef DEBUG
     cout << "The unsupportedNodes were " << endl;
-    for(auto internalNode : unsupportedNodes) {
+    for (auto internalNode : unsupportedNodes) {
         cout << internalNode << " , ";
     }
     cout << endl;
@@ -23,7 +21,7 @@ double QuadraticSolver::updateWeights() {
     //     cout << edge.first << " , " << edge.second << endl;
     // }
     cout << "The vertices are " << endl;
-    for(int i = 0; i < V.rows(); i++) {
+    for (int i = 0; i < V.rows(); i++) {
         cout << V.row(i) << endl;
     }
 #endif
@@ -54,7 +52,12 @@ double QuadraticSolver::updateWeights() {
     for (unsigned int i = 0; i < identity.nrows(); i++) {
         identity[i][i] = 1;
     }
-    // Fill up zDiff through going through each triangle and filling in
+
+    #ifdef DEBUG_DUP
+    set<int> finishedNodes;
+    #endif
+
+    // Go through each face
     for (int i = 0; i < F.rows(); i++) {
         RowVector3i currFace = F.row(i);
         Matrix3d currPoints;
@@ -86,14 +89,22 @@ double QuadraticSolver::updateWeights() {
                 const double zDiff1 = currPoints(j, 2) - currPoints(other1, 2);
                 const double xDiff1 = currPoints(j, 0) - currPoints(other1, 0);
                 const double yDiff1 = currPoints(j, 1) - currPoints(other1, 1);
-                if (unsupportedNodes.find(currFace(j)) == unsupportedNodes.end() &&
+                if (unsupportedNodes.find(currFace(j)) ==
+                        unsupportedNodes.end() &&
                     unsupportedNodes.find(currFace(other1)) ==
                         unsupportedNodes.end()) {
                     cout << "skipping an edge due to it not being in the "
-                            "internal struct"
-                         << endl;
+                         << "internal struct" << endl;
                     continue;
                 }
+#ifdef DEBUG_DUP
+                if (finishedNodes.find(currFace(j)) != finishedNodes.end()) {
+                    continue;
+                }
+                else {
+                    finishedNodes.insert(currFace(j));
+                }
+#endif
                 zDiff[indr.indexVert(currIndex)]
                      [indr.indexEdge(currIndex, index)] = zDiff1;
 #ifdef DEBUG
@@ -116,7 +127,7 @@ double QuadraticSolver::updateWeights() {
             }
         }
     }
-    weights = qp::Vector<double>(ONE, numEdges);
+    weights = qp::Vector<double>(ZERO, numEdges);
     // qp::Matrix<double> mWeights(numEdges, 1);
     // mWeights.setColumn(0, weights);
     qp::Vector<double> justOnes(ONE, numEdges);
@@ -137,9 +148,10 @@ double QuadraticSolver::updateWeights() {
     // To construct the positive definite zDiff matrix, we must
     // multiply it with itself
     zDiff = dot_prod(zDiffT, zDiff);
+    zDiff += (identity *= pow(10, -15));
+    identity *= pow(10, 15);
     zDiff *= 2;
-    zDiff += (identity *= pow(10, -9));
-    identity *= pow(10, 9);
+
 #ifdef DEBUG
     cout << "The ZDiff we pass is " << zDiff << endl;
     cout << "The linearComponent is" << linearComponent << endl;
@@ -152,6 +164,15 @@ double QuadraticSolver::updateWeights() {
     double success =
         qp::solve_quadprog(zDiff, linearComponent, xyDiff, justZerosForXY,
                            identity, justZerosForPos, weights);
+    #ifdef CHECK_WEIGHTS
+    double checkWeights = 0;
+    for (const auto edge: indr.edgeMap()) {
+        checkWeights += weights[edge.second] * weights[edge.second];
+    }
+    checkWeights *= pow(10, -11);
+    cout << "The checkWeights was" << checkWeights << endl;
+    cout << "CheckWeights *= 2 is " << checkWeights * 2 << endl;
+    #endif
     for (const auto edge : indr.edgeMap()) {
         weightMap[edge.first] = weights[edge.second];
 #ifdef DEBUG
@@ -161,6 +182,3 @@ double QuadraticSolver::updateWeights() {
     }
     return success;
 }
-
-
-

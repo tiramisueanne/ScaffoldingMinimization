@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
     // This is the flood fill of finding the gradient and creating newVertices
 
     QuadraticSolver qs(V, F, isHand);
-    double succ = 0;
+    double success = 0;
     double sum = qs.getTotalForce();
     int count = 0;
 #ifdef DEBUG
@@ -61,13 +61,13 @@ int main(int argc, char *argv[]) {
     int countStop = 1;
 #endif
 #if !defined(DUALS)
-    while (fabs(succ + sum) > 0.000001 && count < countStop) {
-        succ = 0;
-        succ += qs.updateWeights();
-        cout << "The success value of succ is " << succ << endl;
-        cout << "The success value of succ and sum is " << sum + succ << endl;
-        double updateSucc = qs.updateVertices();
-        cout << "the success value of updating was " << updateSucc << endl;
+    while (fabs(success + sum) > 0.000001 && count < countStop) {
+        success = 0;
+        success += qs.updateWeights();
+        cout << "The success value of succ is " << success << endl;
+        cout << "The success value of succ and sum is " << sum + success << endl;
+        double updateSuccess = qs.updateVertices();
+        cout << "the success value of updating was " << updateSuccess << endl;
         count++;
     }
     cout << "Iterated on this shape " << count << " times" << endl;
