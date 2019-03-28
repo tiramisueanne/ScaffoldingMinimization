@@ -12,6 +12,7 @@
 #include <queue>
 #include <set>
 
+#include "EvenBigger.h"
 #include "GetNewPrimal.h"
 #include "HandMesh.h"
 #include "InitBiggerMesh.h"
@@ -19,11 +20,12 @@
 
 using namespace std;
 using namespace Eigen;
-#define DEBUG
+// #define DEBUG
 // #define SHOW_POISSON
 // #define DUALS
-#define CHECKDUALS
+// #define CHECKDUALS
 #define CHECKBIGMESH
+#define CHECKBIGGER
 
 int main(int argc, char *argv[]) {
     // Reading in the primal V, F files
@@ -38,12 +40,12 @@ int main(int argc, char *argv[]) {
     }
     // otherwise, use our hand-made mesh
     else {
-#ifndef CHECKBIGMESH
+#ifndef CHECKBIGGER
         initHandMesh(V, F);
         isHand = true;
 #endif
-#ifdef CHECKBIGMESH
-        initBiggerMesh(V, F);
+#ifdef CHECKBIGGER
+        evenBiggerMesh(V, F);
         isHand = true;
 #endif
     }
@@ -73,7 +75,7 @@ int main(int argc, char *argv[]) {
     cout << "Iterated on this shape " << count << " times" << endl;
 #endif
 
-#ifdef DUALS
+#ifdef DUALS_L
     qs.updateWeights();
     MatrixXd dualVerts = qs.getNewDual();
 #ifdef CHECKDUALS
@@ -92,7 +94,7 @@ int main(int argc, char *argv[]) {
 #ifdef DUALS
     MatrixXd &toUse = newVerts;
 #endif
-#ifndef DUALS
+#ifndef DUALS_L
     MatrixXd &toUse = qs.V;
 #endif
 
@@ -101,7 +103,7 @@ int main(int argc, char *argv[]) {
     viewer.data().set_mesh(toUse, qs.F);
 
 // Place dual points if we have them
-#ifdef DUALS
+#ifdef DUALS_L
     viewer.data().add_points(dualVerts, RowVector3d(10, 10, 100));
 #endif
 
