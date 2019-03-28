@@ -6,23 +6,25 @@ using namespace std;
 using namespace Eigen;
 
 void evenBiggerMesh(Eigen::MatrixXd &V, Eigen::MatrixXi &F) {
-    V = MatrixXd(16, 3);
-    F = MatrixXi(18, 3);
-    for(int i = 0; i < 4; i++) {
-        for(int j = 0; j < 4; j++) {
-            V.row(i*4 + j) << i, j, 0;
+    V = MatrixXd(36, 3);
+    F = MatrixXi(50, 3);
+    int rowSize = 6;
+    for (int i = 0; i < rowSize; i++) {
+        for (int j = 0; j < rowSize; j++) {
+            V.row(i * rowSize + j) << i, j, 0;
         }
     }
-    for(int i = 0; i < 3; i++) {
-        for(int j = 0; j < 3; j++) {
-            int firstVert = 4 * (i + 1) + j;
-            int secondVert = 4 * i + j + 1;
-            int thirdVert = 4 * i + j;
-            int fourthVert = 4 * (i + 1) + j + 1;
+    for (int i = 0; i < rowSize - 1; i++) {
+        for (int j = 0; j < rowSize - 1; j++) {
+            int firstVert = rowSize * (i + 1) + j;
+            int secondVert = rowSize * i + j + 1;
+            int thirdVert = rowSize * i + j;
+            int fourthVert = rowSize * (i + 1) + j + 1;
             // Upper half
-            F.row(2 * (i*3 + j)) << firstVert, secondVert, thirdVert;
+            F.row(2 * (i * (rowSize - 1) + j)) << firstVert, secondVert, thirdVert;
             // Lower Half
-            F.row(2 * (i*3 + j) + 1) << firstVert, fourthVert, secondVert;
+            F.row(2 * (i * (rowSize - 1) + j) + 1) << firstVert, fourthVert,
+                secondVert;
         }
     }
 }
