@@ -7,7 +7,7 @@
 #include "QuadraticSolver.h"
 using namespace std;
 using namespace Eigen;
-// #define DEBUG
+#define DEBUG
 // #define UNSUPPORT_A_NODE
 
 set<int> QuadraticSolver::getUnsupportedNodes(const MatrixXi &_F,

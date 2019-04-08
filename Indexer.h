@@ -17,24 +17,27 @@ class Indexer {
 
     // If the edge is v1 - v2
     inline int indexEdge(int v1, int v2) const {
-        if(edgeIndex.find(pair<int, int>(v1, v2)) == edgeIndex.end()) {
+        if (edgeIndex.find(pair<int, int>(v1, v2)) == edgeIndex.end()) {
             cerr << "We are indexing a bad edge!" << endl;
             throw new exception();
         }
         return edgeIndex.at(pair<int, int>(v1, v2));
     }
+    inline const vector<int> &vertVect() const { return indexes; }
 
     inline const map<pair<int, int>, int> &edgeMap() { return edgeIndex; }
 
-    #define XDim 0
-    #define YDim 1
-    #define ZDim 2
-    inline int indexBigVert(int vertex, int dim) { return indexes[vertex] * 3 + dim; }
+#define XDim 0
+#define YDim 1
+#define ZDim 2
+    inline int indexBigVert(int vertex, int dim) {
+        return indexes[vertex] * 3 + dim;
+    }
 };
 
 inline Indexer::Indexer(int numVertices, set<int> internalNodes,
                         set<pair<int, int>> allEdges)
-    : numVert(numVertices), indexes(numVert) {
+    : numVert(numVertices), indexes(numVert, -1) {
     int matrixIndex = 0;
     for (int internal : internalNodes) {
         indexes[internal] = matrixIndex;

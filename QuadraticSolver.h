@@ -28,6 +28,9 @@ class QuadraticSolver {
     // This is how we estimate the forces
     qp::Matrix<double> getForces();
 
+    Eigen::MatrixXd getForceAreas();
+    Eigen::VectorXd getForceDensities();
+
     const map<pair<int, int>, double> &getWeights() { return weightMap; }
 
     // This is to calculate all of the edges in the figure

@@ -6,7 +6,7 @@ using namespace std;
 using namespace Eigen;
 
 namespace qp = quadprogpp;
-#define DEBUG
+// #define DEBUG
 #define USE_Z_OPT
 #define CHECK_Z
 
@@ -134,11 +134,25 @@ double QuadraticSolver::updateVertices() {
 #endif
     cout << endl;
     qp::Vector<double> response = (dot_prod(zValues, vec));
+    const auto& vertVec = indr.vertVect();
+    for (int i = 0; i < vertVec.size(); i++) {
+        if (vertVec[i] == 0) {
+            cout << "The first internal vert is" << i << endl;
+        }
+    }
     cout << "The before value was:\n";
     for (int i = 0; i < response.size(); i++) {
         cout << response[i] << "and the zConst was" << zConstant[i] << endl;
         cout << "The addition of resp and zConst is "
              << response[i] + zConstant[i] << endl;
+        if (fabs(response[i] + zConstant[i]) > 0.2) {
+            for (int j = 0; j < vertVec.size(); j++) {
+                if (vertVec[j] == i) {
+                    cout << "AN INTERESTING POINT IS " << j << endl;
+                }
+            }
+            cout << endl;
+        }
     }
     qp::Vector<double> responseXY = (dot_prod(xyValues, vec));
     cout << "The before value for xy was:\n";

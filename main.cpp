@@ -60,9 +60,10 @@ int main(int argc, char *argv[]) {
     int countStop = 1;
 #endif
 #ifndef DEBUG
-    int countStop = 1;
+    int countStop = 30;
 #endif
 #if !defined(DUALS)
+    cout << "The fabs value was " << fabs(success + sum) << endl;
     while (fabs(success + sum) > 0.000001 && count < countStop) {
         success = 0;
         success += qs.updateWeights();
@@ -106,6 +107,13 @@ int main(int argc, char *argv[]) {
 #ifdef DUALS_L
     viewer.data().add_points(dualVerts, RowVector3d(10, 10, 100));
 #endif
+    #ifdef CHECK_BIG
+    MatrixXd interesting(3, 3);
+    interesting.row(0) = V.row(9);
+    interesting.row(1) = V.row(25);
+    interesting.row(2) = V.row(37);
+    viewer.data().add_points(interesting, RowVector3d(10, 10, 100));
+    #endif
 
     // Compile the weights file
     viewer.launch();

@@ -13,13 +13,15 @@ namespace qp = quadprogpp;
 
 // #define DEBUG
 
-// A method for getting each "real" weight for the vertices
-// TODO: figure out how to read in the "real" weights, as we are just using 2
-// for each one right now
+// A method for getting the calculated weight for each vertex
 qp::Matrix<double> QuadraticSolver::getForces() {
-    // Since we currently don't have any information on weights, just
-    // return a random number for every vertex of the primal
-    return qp::Matrix<double>(-1 , 1, unsupportedNodes.size());
+    qp::Matrix<double> forces(1, unsupportedNodes.size());
+    VectorXd areas = getForceAreas();
+    VectorXd densities = getForceDensities();
+    for (const auto& unsupported : unsupportedNodes) {
+        forces[0][indr.indexVert(unsupported)] = areas[indr.indexVert(unsupported)] * densities[indr.indexVert(unsupported)];
+    }
+    return forces;
 }
 
 set<pair<int, int>> QuadraticSolver::allEdges() {
@@ -29,7 +31,8 @@ set<pair<int, int>> QuadraticSolver::allEdges() {
         for (int i = 0; i < 3; i++) {
             // If this edge doesn't connect to an internal node
             if (unsupportedNodes.find(face(i)) == unsupportedNodes.end() &&
-                unsupportedNodes.find(face((i + 1) % 3)) == unsupportedNodes.end()) {
+                unsupportedNodes.find(face((i + 1) % 3)) ==
+                    unsupportedNodes.end()) {
                 continue;
             }
             edges.insert(pair<int, int>(face(i), (face((i + 1) % 3))));
