@@ -9,7 +9,7 @@ using namespace Eigen;
 void QuadraticSolver::createLaplacian(bool isHand = false) {
     MatrixXd lap(V.rows(), V.rows());
     lap.setZero();
-
+    cout << "Done creating the big mat" << endl;
     // Create adjacency matrix first, without doing external rows
     // For each triangle, set neighbor vertices on correct rows
     for (int i = 0; i < F.rows(); i++) {
@@ -26,7 +26,7 @@ void QuadraticSolver::createLaplacian(bool isHand = false) {
             lap(currRow, neigh2) = -1;
         }
     }
-
+    cout << "Done with first internal adj" << endl;
     for (int i = 0; i < lap.rows(); i++) {
         // If this is an external row, identity row
         if (unsupportedNodes.find(i) == unsupportedNodes.end()) {
@@ -44,13 +44,16 @@ void QuadraticSolver::createLaplacian(bool isHand = false) {
             lap(i, i) = -sum;
         }
     }
-
+    cout << "Setting up the valence done!" << endl;
     VectorXd onesForBounds(V.rows());
     onesForBounds = VectorXd::Ones(V.rows());
+    cout << "Ones for bounds created" << endl;
 
-    FullPivLU<MatrixXd> decomp(lap);
+    HouseholderQR<MatrixXd> decomp(lap);
+    cout << "Created a decomp thing" << endl;
     V.col(2) = decomp.solve(onesForBounds);
-    if(!isHand) {
-        V.col(2) *= pow(10, -3);
+    cout << "The decompositoin is done" << endl;
+    if (!isHand) {
+        V.col(2) *= pow(10, -1.5);
     }
 }

@@ -14,9 +14,13 @@ class QuadraticSolver {
     QuadraticSolver(MatrixXd &_V, MatrixXi &_F, bool isHand = false)
         : V(_V), F(_F) {
         unsupportedNodes = getUnsupportedNodes(F, V);
+        cout << "Got the unsupported nodes!" << endl;
         edges = allEdges();
+        cout << "Got all the edges!" << endl;
         indr = Indexer(V.rows(), unsupportedNodes, edges);
+        cout << "Indexer all done!" << endl;
         createLaplacian(isHand);
+        cout << "Laplacian also complete" << endl;
     };
 
     // This is to calculate weights from our estimated forces on the structure
@@ -60,6 +64,8 @@ class QuadraticSolver {
 
     MatrixXd getNewDual();
     bool checkDual(MatrixXd &dualVerts);
+
+    void unsupportANode();
 
     MatrixXd &V;
     qp::Vector<double> vec;

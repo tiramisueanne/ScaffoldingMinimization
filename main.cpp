@@ -1,6 +1,5 @@
 #include <igl/opengl/glfw/Viewer.h>
 #include <igl/readOBJ.h>
-#include <igl/segment_segment_intersect.h>
 #include <igl/triangle_triangle_adjacency.h>
 #include <Eigen/Dense>
 
@@ -20,12 +19,13 @@
 
 using namespace std;
 using namespace Eigen;
-// #define DEBUG
-// #define SHOW_POISSON
+#define DEBUG
+#define SHOW_POISSON
 // #define DUALS
 // #define CHECKDUALS
-#define CHECKBIGMESH
-#define CHECKBIGGER
+// #define CHECKBIGMESH
+// #define CHECKBIGGER
+// #define JUST_SHOW
 
 int main(int argc, char *argv[]) {
     // Reading in the primal V, F files
@@ -50,8 +50,8 @@ int main(int argc, char *argv[]) {
 #endif
     }
 
-    // This is the flood fill of finding the gradient and creating newVertices
-
+// This is the flood fill of finding the gradient and creating newVertices
+#if !defined(JUST_SHOW)
     QuadraticSolver qs(V, F, isHand);
     double success = 0;
     double sum = qs.getTotalForce();
@@ -62,18 +62,20 @@ int main(int argc, char *argv[]) {
 #ifndef DEBUG
     int countStop = 30;
 #endif
-#if !defined(DUALS)
-    cout << "The fabs value was " << fabs(success + sum) << endl;
-    while (fabs(success + sum) > 0.000001 && count < countStop) {
-        success = 0;
-        success += qs.updateWeights();
-        cout << "The success value of succ is " << success << endl;
-        cout << "The success value of succ and sum is " << sum + success << endl;
-        double updateSuccess = qs.updateVertices();
-        cout << "the success value of updating was " << updateSuccess << endl;
-        count++;
-    }
-    cout << "Iterated on this shape " << count << " times" << endl;
+// #if !defined(DUALS)
+//     cout << "The fabs value was " << fabs(success + sum) << endl;
+//     while (fabs(success + sum) > 0.000001 && count < countStop) {
+//         success = 0;
+//         success += qs.updateWeights();
+//         cout << "The success value of succ is " << success << endl;
+//         cout << "The success value of succ and sum is " << sum + success
+//              << endl;
+//         double updateSuccess = qs.updateVertices();
+//         cout << "the success value of updating was " << updateSuccess << endl;
+//         count++;
+//     }
+//     cout << "Iterated on this shape " << count << " times" << endl;
+// #endif
 #endif
 
 #ifdef DUALS_L
@@ -95,25 +97,29 @@ int main(int argc, char *argv[]) {
 #ifdef DUALS
     MatrixXd &toUse = newVerts;
 #endif
-#ifndef DUALS_L
+#if !defined(DUALS_L) && !defined(JUST_SHOW)
     MatrixXd &toUse = qs.V;
 #endif
 
     // utilize libigl's viewer
     igl::opengl::glfw::Viewer viewer;
+#ifndef JUST_SHOW
     viewer.data().set_mesh(toUse, qs.F);
-
+#endif
+#ifdef JUST_SHOW
+    viewer.data().set_mesh(V, F);
+#endif
 // Place dual points if we have them
 #ifdef DUALS_L
     viewer.data().add_points(dualVerts, RowVector3d(10, 10, 100));
 #endif
-    #ifdef CHECK_BIG
+#ifdef CHECK_BIG
     MatrixXd interesting(3, 3);
     interesting.row(0) = V.row(9);
     interesting.row(1) = V.row(25);
     interesting.row(2) = V.row(37);
     viewer.data().add_points(interesting, RowVector3d(10, 10, 100));
-    #endif
+#endif
 
     // Compile the weights file
     viewer.launch();

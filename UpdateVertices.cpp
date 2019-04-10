@@ -1,5 +1,4 @@
 #include <iostream>
-
 #include "QuadraticSolver.h"
 
 using namespace std;
@@ -8,7 +7,7 @@ using namespace Eigen;
 namespace qp = quadprogpp;
 // #define DEBUG
 #define USE_Z_OPT
-#define CHECK_Z
+// #define CHECK_Z
 
 double QuadraticSolver::updateVertices() {
     // Create the new thing to optimize, which is all the points of
@@ -72,14 +71,12 @@ double QuadraticSolver::updateVertices() {
                 weight * V.row(edge.second).y();
         }
     }
-
     // For all forces, go through and add to zValues
     for (int i = 0; i < forces.ncols(); i++) {
         // TODO: this requires no indexing right now, because it's all constants
         zConstant[i] += forces[0][i];
 #ifdef CHECK_Z
-        cout << "We added the force " << forces[0][i] << " to the " << i
-             << endl;
+        cout << "We added the force " << forces[0][i] << " to the " << i << endl;
 #endif
     }
 
