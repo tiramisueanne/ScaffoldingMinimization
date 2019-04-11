@@ -19,7 +19,7 @@
 
 using namespace std;
 using namespace Eigen;
-#define DEBUG
+// #define DEBUG
 #define SHOW_POISSON
 // #define DUALS
 // #define CHECKDUALS
@@ -62,20 +62,20 @@ int main(int argc, char *argv[]) {
 #ifndef DEBUG
     int countStop = 30;
 #endif
-// #if !defined(DUALS)
-//     cout << "The fabs value was " << fabs(success + sum) << endl;
-//     while (fabs(success + sum) > 0.000001 && count < countStop) {
-//         success = 0;
-//         success += qs.updateWeights();
-//         cout << "The success value of succ is " << success << endl;
-//         cout << "The success value of succ and sum is " << sum + success
-//              << endl;
-//         double updateSuccess = qs.updateVertices();
-//         cout << "the success value of updating was " << updateSuccess << endl;
-//         count++;
-//     }
-//     cout << "Iterated on this shape " << count << " times" << endl;
-// #endif
+#if !defined(DUALS)
+    cout << "The fabs value was " << fabs(success + sum) << endl;
+    while (fabs(success + sum) > 0.000001 && count < countStop) {
+        success = 0;
+        success += qs.updateWeights();
+        cout << "The success value of succ is " << success << endl;
+        cout << "The success value of succ and sum is " << sum + success
+             << endl;
+        double updateSuccess = qs.updateVertices();
+        cout << "the success value of updating was " << updateSuccess << endl;
+        count++;
+    }
+    cout << "Iterated on this shape " << count << " times" << endl;
+#endif
 #endif
 
 #ifdef DUALS_L

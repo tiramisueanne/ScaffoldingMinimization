@@ -127,6 +127,7 @@ double QuadraticSolver::updateWeights() {
             }
         }
     }
+    cout << "Finished filling up the zDiff and xyDiff" << endl;
     weights = qp::Vector<double>(ZERO, numEdges);
     // qp::Matrix<double> mWeights(numEdges, 1);
     // mWeights.setColumn(0, weights);
@@ -142,6 +143,7 @@ double QuadraticSolver::updateWeights() {
     cout << "zDiff is" << zDiff << endl;
     cout << "zDiffT is " << zDiffT << endl;
 #endif
+    cout << "Created a bunch of vectors!" << endl;
     qp::Vector<double> linearComponent(dot_prod(forces, zDiff));
     linearComponent *= 2;
 
@@ -161,9 +163,11 @@ double QuadraticSolver::updateWeights() {
          << xyDiff.ncols() << endl;
     cout << "The identity is" << identity << endl;
 #endif
+    cout << "Starting quadprog" << endl;
     double success =
         qp::solve_quadprog(zDiff, linearComponent, xyDiff, justZerosForXY,
                            identity, justZerosForPos, weights);
+    cout << "Finished quadprog!" << endl;
     #ifdef CHECK_WEIGHTS
     double checkWeights = 0;
     for (const auto edge: indr.edgeMap()) {
