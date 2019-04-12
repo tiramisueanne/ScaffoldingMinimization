@@ -1,13 +1,12 @@
 #pragma once
 #include <Eigen/Dense>
-#include <QuadProg++/QuadProg++.hh>
+#include <eigen-quadprog/QuadProg.h>
 #include <map>
 
 #include "Indexer.h"
 
 using namespace std;
 using namespace Eigen;
-namespace qp = quadprogpp;
 
 class QuadraticSolver {
    public:
@@ -30,7 +29,7 @@ class QuadraticSolver {
     double updateVertices();
 
     // This is how we estimate the forces
-    qp::Matrix<double> getForces();
+    MatrixXd getForces();
 
     Eigen::MatrixXd getForceAreas();
     Eigen::VectorXd getForceDensities();
@@ -54,8 +53,8 @@ class QuadraticSolver {
     double getTotalForce() {
         double total = 0;
         forces = getForces();
-        for (int i = 0; i < forces.ncols(); i++) {
-            total += forces[0][i] * forces[0][i];
+        for (int i = 0; i < forces.cols(); i++) {
+            total += forces(0, i) * forces(0 , i);
         }
         return total;
     }
@@ -68,11 +67,11 @@ class QuadraticSolver {
     void unsupportANode();
 
     MatrixXd &V;
-    qp::Vector<double> vec;
+    VectorXd vec;
     const MatrixXi &F;
     set<pair<int, int>> edges;
-    qp::Matrix<double> forces;
-    qp::Vector<double> weights;
+    VectorXd forces;
+    VectorXd weights;
     map<pair<int, int>, double> weightMap;
     Indexer indr;
     set<int> unsupportedNodes;

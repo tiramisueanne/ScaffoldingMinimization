@@ -14,13 +14,13 @@ namespace qp = quadprogpp;
 // #define DEBUG
 
 // A method for getting the calculated weight for each vertex
-qp::Matrix<double> QuadraticSolver::getForces() {
+MatrixXd QuadraticSolver::getForces() {
     const int ZERO = 0;
-    forces = qp::Matrix<double>(ZERO, 1, unsupportedNodes.size());
+    forces = VectorXd(unsupportedNodes.size());
     VectorXd areas = getForceAreas();
     VectorXd densities = getForceDensities();
     for (const auto& unsupported : unsupportedNodes) {
-        forces[0][indr.indexVert(unsupported)] = areas[indr.indexVert(unsupported)] * densities[indr.indexVert(unsupported)];
+        forces[indr.indexVert(unsupported)] = areas[indr.indexVert(unsupported)] * densities[indr.indexVert(unsupported)];
     }
     return forces;
 }
@@ -55,9 +55,9 @@ void QuadraticSolver::bumpInternalNodes() {
 // Unsupport the node with the least force on it
 void QuadraticSolver::unsupportANode() {
     forces = getForces();
-    VectorXd force(forces.ncols());
-    for(int i = 0; i < forces.ncols(); i++) {
-        force(i) = forces[0][i];
+    VectorXd force(forces.cols());
+    for(int i = 0; i < forces.cols(); i++) {
+        force(i) = forces(0, i);
     }
     int index;
     force.minCoeff(&index);

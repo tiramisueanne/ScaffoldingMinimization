@@ -4,7 +4,6 @@
 using namespace std;
 using namespace Eigen;
 
-namespace qp = quadprogpp;
 // #define DEBUG
 #define USE_Z_OPT
 // #define CHECK_Z
@@ -13,7 +12,7 @@ double QuadraticSolver::updateVertices() {
     // Create the new thing to optimize, which is all the points of
     // the internal nodes
     int ZERO = 0;
-    vec = qp::Vector<double>(ZERO, unsupportedNodes.size() * V.cols());
+    vec = VectorXd::Constant(unsupportedNodes.size() * V.cols(), 0);
     for (auto row : unsupportedNodes) {
         for (int j = 0; j < V.cols(); j++) {
             vec[indr.indexBigVert(row, j)] = V(row, j);
@@ -21,14 +20,14 @@ double QuadraticSolver::updateVertices() {
     }
 
     // Create the new zDiff struct
-    qp::Matrix<double> zValues(ZERO, unsupportedNodes.size(),
-                               unsupportedNodes.size() * V.cols());
+    MatrixXd zValues = MatrixXd::Constant( unsupportedNodes.size(),
+                                           unsupportedNodes.size() * V.cols(), 0);
 
-    qp::Matrix<double> xyValues(ZERO, unsupportedNodes.size() * 2,
-                                unsupportedNodes.size() * V.cols());
+    MatrixXd xyValues = MatrixXd::Constant(unsupportedNodes.size() * 2,
+                      unsupportedNodes.size() * V.cols(), 0);
 
-    qp::Vector<double> zConstant(ZERO, unsupportedNodes.size());
-    qp::Vector<double> xyConstant(ZERO, unsupportedNodes.size() * 2);
+    VectorXd zConstant = VectorXd::Constant(unsupportedNodes.size(), 0);
+    VectorXd xyConstant = VectorXd::Constant(unsupportedNodes.size() * 2, 0);
 
     // Go through each edge and add weights
     for (const pair<pair<int, int>, double>& edge_weight : weightMap) {
@@ -37,12 +36,12 @@ double QuadraticSolver::updateVertices() {
 
         // If this is a row to constrain
         if (unsupportedNodes.find(edge.first) != unsupportedNodes.end()) {
-            zValues[indr.indexVert(edge.first)]
-                   [indr.indexBigVert(edge.first, ZDim)] += weight;
-            xyValues[indr.indexVert(edge.first) * 2]
-                    [indr.indexBigVert(edge.first, XDim)] += weight;
-            xyValues[indr.indexVert(edge.first) * 2 + 1]
-                    [indr.indexBigVert(edge.first, YDim)] += weight;
+            zValues(indr.indexVert(edge.first),
+                    indr.indexBigVert(edge.first, ZDim)) += weight;
+            xyValues(indr.indexVert(edge.first) * 2,
+                     indr.indexBigVert(edge.first, XDim)) += weight;
+            xyValues(indr.indexVert(edge.first) * 2 + 1,
+                     indr.indexBigVert(edge.first, YDim)) += weight;
 
         } else {
             continue;
@@ -50,54 +49,55 @@ double QuadraticSolver::updateVertices() {
 
         // If this will be affected by our optimized nodes
         if (unsupportedNodes.find(edge.second) != unsupportedNodes.end()) {
-            zValues[indr.indexVert(edge.first)]
-                   [indr.indexBigVert(edge.second, ZDim)] -= weight;
-            xyValues[indr.indexVert(edge.first) * 2]
-                    [indr.indexBigVert(edge.second, XDim)] -= weight;
-            xyValues[indr.indexVert(edge.first) * 2 + 1]
-                    [indr.indexBigVert(edge.second, YDim)] -= weight;
+            zValues(indr.indexVert(edge.first),
+                    indr.indexBigVert(edge.second, ZDim)) -= weight;
+            xyValues(indr.indexVert(edge.first) * 2,
+                     indr.indexBigVert(edge.second, XDim)) -= weight;
+            xyValues(indr.indexVert(edge.first) * 2 + 1,
+                     indr.indexBigVert(edge.second, YDim)) -= weight;
 
         } else {
-            zConstant[indr.indexVert(edge.first)] -=
+            zConstant(indr.indexVert(edge.first)) -=
                 weight * V.row(edge.second).z();
 #ifdef CHECK_Z
             cout << "We added " << weight * V.row(edge.second).z() << " to "
                  << indr.indexVert(edge.first) << " to now force "
                  << zConstant[indr.indexVert(edge.first)] << endl;
 #endif
-            xyConstant[indr.indexVert(edge.first) * 2] -=
+            xyConstant(indr.indexVert(edge.first) * 2) -=
                 weight * V.row(edge.second).x();
-            xyConstant[indr.indexVert(edge.first) * 2 + 1] -=
+            xyConstant(indr.indexVert(edge.first) * 2 + 1) -=
                 weight * V.row(edge.second).y();
         }
     }
     // For all forces, go through and add to zValues
-    for (int i = 0; i < forces.ncols(); i++) {
+    for (int i = 0; i < forces.cols(); i++) {
         // TODO: this requires no indexing right now, because it's all constants
-        zConstant[i] += forces[0][i];
+        zConstant(i) += forces(0, i);
 #ifdef CHECK_Z
-        cout << "We added the force " << forces[0][i] << " to the " << i << endl;
+        cout << "We added the force " << forces[0][i] << " to the " << i
+             << endl;
 #endif
     }
 
     // Our quadratic var
-    qp::Matrix<double> vecToPass(ZERO, vec.size(), vec.size());
-    qp::Matrix<double> multiplyZVal = dot_prod(t(zValues), zValues);
+    MatrixXd vecToPass = MatrixXd::Constant(vec.size(), vec.size(), 0);
+    MatrixXd multiplyZVal = zValues.transpose() * zValues;
     double zValWeight = 1;
     double movementWeight = 1;
 #ifdef USE_Z_OPT
     vecToPass += multiplyZVal * zValWeight * zValWeight;
 #endif
-    for (int i = 0; i < vecToPass.nrows(); i++) {
-        vecToPass[i][i] += movementWeight * movementWeight;
+    for (int i = 0; i < vecToPass.rows(); i++) {
+        vecToPass(i, i) += movementWeight * movementWeight;
     }
     vecToPass *= 2;
 
     // Set up the linear component
-    qp::Vector<double> linearComp = vec;
+    VectorXd linearComp = vec;
 #ifdef USE_Z_OPT
     linearComp *= movementWeight;
-    linearComp += zValWeight * dot_prod(forces, zValues);
+    linearComp += zValWeight * forces * zValues;
 #endif
     linearComp *= -2;
 #ifdef DEBUG
@@ -111,15 +111,15 @@ double QuadraticSolver::updateVertices() {
         cout << linearComp[i] << endl;
     }
     cout << "The zValues are " << endl;
-    for (int i = 0; i < zValues.nrows(); i++) {
-        for (int j = 0; j < zValues.ncols(); j++) {
+    for (int i = 0; i < zValues.rows(); i++) {
+        for (int j = 0; j < zValues.cols(); j++) {
             cout << zValues[i][j] << " ";
         }
         cout << endl;
     }
     cout << "The xyValues are" << endl;
-    for (int i = 0; i < xyValues.nrows(); i++) {
-        for (int j = 0; j < xyValues.ncols(); j++) {
+    for (int i = 0; i < xyValues.rows(); i++) {
+        for (int j = 0; j < xyValues.cols(); j++) {
             cout << xyValues[i][j] << " ";
         }
         cout << endl;
@@ -130,7 +130,7 @@ double QuadraticSolver::updateVertices() {
     }
 #endif
     cout << endl;
-    qp::Vector<double> response = (dot_prod(zValues, vec));
+    VectorXd response = zValues * vec;
     const auto& vertVec = indr.vertVect();
     for (int i = 0; i < vertVec.size(); i++) {
         if (vertVec[i] == 0) {
@@ -151,7 +151,7 @@ double QuadraticSolver::updateVertices() {
             cout << endl;
         }
     }
-    qp::Vector<double> responseXY = (dot_prod(xyValues, vec));
+    VectorXd responseXY = (xyValues * vec);
     cout << "The before value for xy was:\n";
     for (int i = 0; i < response.size(); i++) {
         // We are going to assert that these are small
@@ -172,14 +172,15 @@ double QuadraticSolver::updateVertices() {
     cout << "The value of vec was " << vec << endl;
 #endif
     // xyConstant should be =, while zValue can be >=
-    double success = qp::solve_quadprog(vecToPass, linearComp, t(xyValues),
-                                        xyConstant, t(zValues), zConstant, vec);
-
+    QuadProgDense prob;
+    bool success = prob.solve(vecToPass, linearComp, xyValues.transpose(), xyConstant,
+                  zValues.transpose(), zConstant);
+    vec = prob.result();
 #ifdef DEBUG
     cout << "The value of vec is now " << vec << endl;
     cout << "The success value of updating was " << success << endl;
 
-    response = (dot_prod(zValues, vec));
+    response = zValues * vec;
     cout << "The response value was:\n";
     for (int i = 0; i < response.size(); i++) {
         cout << response[i] << "and the zConst was" << zConstant[i] << endl;

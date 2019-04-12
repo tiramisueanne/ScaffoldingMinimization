@@ -6,7 +6,7 @@
 double QuadraticSolver::updateWeights() {
     // We will only ever constrain or check the weights of internal nodes
     // as the others are clamped down at the edges
-    unsigned int rowSize = int(V.innerSize());
+    unsigned int rowSize = int(V.rows());
     unsigned int internalSize = unsupportedNodes.size();
     // Might have to update this, use the method
     forces = getForces();
@@ -39,24 +39,19 @@ double QuadraticSolver::updateWeights() {
     // initialize values to zero
     // innerSize = number of rows
     // TODO: MULTIPLY BY TWO
-    qp::Matrix<double> zDiff(ZERO, internalSize, numEdges);
+    MatrixXd zDiff = MatrixXd::Constant(internalSize, numEdges, 0);
 
     // This matrix is two rows for every vertex: one is diff in x for
     // each edge, and one is diff in y
     // This will be constrained to zero.
-    qp::Matrix<double> xyDiff(ZERO, numEdges, internalSize * 2);
+    MatrixXd xyDiff = MatrixXd::Constant(numEdges, internalSize * 2, 0);
 
     // This is the identity matrix, to help us constrain the weights
     // to be positive
-    qp::Matrix<double> identity(ZERO, numEdges, numEdges);
-    for (unsigned int i = 0; i < identity.nrows(); i++) {
-        identity[i][i] = 1;
-    }
-
-    #ifdef DEBUG_DUP
+    MatrixXd identity = MatrixXd::Identity(numEdges, numEdges);
+#ifdef DEBUG_DUP
     set<int> finishedNodes;
-    #endif
-
+#endif
     // Go through each face
     for (int i = 0; i < F.rows(); i++) {
         RowVector3i currFace = F.row(i);
@@ -100,13 +95,12 @@ double QuadraticSolver::updateWeights() {
 #ifdef DEBUG_DUP
                 if (finishedNodes.find(currFace(j)) != finishedNodes.end()) {
                     continue;
-                }
-                else {
+                } else {
                     finishedNodes.insert(currFace(j));
                 }
 #endif
-                zDiff[indr.indexVert(currIndex)]
-                     [indr.indexEdge(currIndex, index)] = zDiff1;
+                zDiff(indr.indexVert(currIndex),
+                      indr.indexEdge(currIndex, index)) = zDiff1;
 #ifdef DEBUG
                 cout << "We inserted" << zDiff1
                      << " into zDiff:" << indr.indexVert(currIndex) << " , "
@@ -114,10 +108,10 @@ double QuadraticSolver::updateWeights() {
                 cout << "The current vertex is " << currIndex
                      << " and the other vertex is " << index << endl;
 #endif
-                xyDiff[indr.indexEdge(currIndex, index)]
-                      [indr.indexVert(currIndex) * 2] = xDiff1;
-                xyDiff[indr.indexEdge(currIndex, index)]
-                      [indr.indexVert(currIndex) * 2 + 1] = yDiff1;
+                xyDiff(indr.indexEdge(currIndex, index),
+                       indr.indexVert(currIndex) * 2) = xDiff1;
+                xyDiff(indr.indexEdge(currIndex, index),
+                       indr.indexVert(currIndex) * 2 + 1) = yDiff1;
 #ifdef DEBUG
                 cout << "Now for xyDiff" << endl;
                 cout << "We inserted" << xDiff1 << " and " << yDiff1 << "into "
@@ -128,28 +122,29 @@ double QuadraticSolver::updateWeights() {
         }
     }
     cout << "Finished filling up the zDiff and xyDiff" << endl;
-    weights = qp::Vector<double>(ZERO, numEdges);
+    // just set this to all zeros
+    weights = VectorXd::Constant(numEdges, 0);
     // qp::Matrix<double> mWeights(numEdges, 1);
     // mWeights.setColumn(0, weights);
-    qp::Vector<double> justOnes(ONE, numEdges);
+    VectorXd justOnes = VectorXd::Constant(numEdges, 1);
     // The vector we add to the result of the constraint
-    qp::Vector<double> justZerosForXY(ZERO, internalSize * 2);
-    qp::Vector<double> justZerosForPos(ZERO, numEdges);
+    VectorXd justZerosForXY = VectorXd::Constant(internalSize * 2, 0);
+    VectorXd justZerosForPos = VectorXd::Constant(numEdges, 0);
 
-    // Since weights is already a row vector, we do not have to
-    // transpose it
-    qp::Matrix<double> zDiffT = t(zDiff);
+// Since weights is already a row vector, we do not have to
+// transpose it
 #ifdef DEBUG
     cout << "zDiff is" << zDiff << endl;
     cout << "zDiffT is " << zDiffT << endl;
 #endif
     cout << "Created a bunch of vectors!" << endl;
-    qp::Vector<double> linearComponent(dot_prod(forces, zDiff));
+    VectorXd linearComponent(forces * zDiff);
     linearComponent *= 2;
 
     // To construct the positive definite zDiff matrix, we must
     // multiply it with itself
-    zDiff = dot_prod(zDiffT, zDiff);
+    zDiff = zDiff.transpose() * zDiff;
+    // Change this to the eigen way of doing it
     zDiff += (identity *= pow(10, -15));
     identity *= pow(10, 15);
     zDiff *= 2;
@@ -164,19 +159,21 @@ double QuadraticSolver::updateWeights() {
     cout << "The identity is" << identity << endl;
 #endif
     cout << "Starting quadprog" << endl;
-    double success =
-        qp::solve_quadprog(zDiff, linearComponent, xyDiff, justZerosForXY,
-                           identity, justZerosForPos, weights);
+    // Fix this to be the other one
+    QuadProgDense problem;
+    bool success = problem.solve(zDiff, linearComponent, xyDiff, justZerosForXY,
+                            identity, justZerosForPos);
+    weights = problem.result();
     cout << "Finished quadprog!" << endl;
-    #ifdef CHECK_WEIGHTS
+#ifdef CHECK_WEIGHTS
     double checkWeights = 0;
-    for (const auto edge: indr.edgeMap()) {
+    for (const auto edge : indr.edgeMap()) {
         checkWeights += weights[edge.second] * weights[edge.second];
     }
     checkWeights *= pow(10, -11);
     cout << "The checkWeights was" << checkWeights << endl;
     cout << "CheckWeights *= 2 is " << checkWeights * 2 << endl;
-    #endif
+#endif
     for (const auto edge : indr.edgeMap()) {
         weightMap[edge.first] = weights[edge.second];
 #ifdef DEBUG
