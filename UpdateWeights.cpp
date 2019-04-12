@@ -138,15 +138,14 @@ double QuadraticSolver::updateWeights() {
     cout << "zDiffT is " << zDiffT << endl;
 #endif
     cout << "Created a bunch of vectors!" << endl;
-    VectorXd linearComponent(forces * zDiff);
+    RowVectorXd linearComponent(forces.transpose() * zDiff);
     linearComponent *= 2;
 
     // To construct the positive definite zDiff matrix, we must
     // multiply it with itself
     zDiff = zDiff.transpose() * zDiff;
     // Change this to the eigen way of doing it
-    zDiff += (identity *= pow(10, -15));
-    identity *= pow(10, 15);
+    zDiff += (identity * pow(10, -15));
     zDiff *= 2;
 
 #ifdef DEBUG
