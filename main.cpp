@@ -24,7 +24,7 @@ using namespace Eigen;
 // #define DUALS
 // #define CHECKDUALS
 // #define CHECKBIGMESH
-// #define CHECKBIGGER
+#define CHECKBIGGER
 // #define JUST_SHOW
 
 int main(int argc, char *argv[]) {

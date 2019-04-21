@@ -53,7 +53,7 @@ void QuadraticSolver::bumpInternalNodes() {
 }
 
 // Unsupport the node with the least force on it
-void QuadraticSolver::unsupportANode() {
+void QuadraticSolver::deleteANode() {
     forces = getForces();
     VectorXd force(forces.cols());
     for(int i = 0; i < forces.cols(); i++) {

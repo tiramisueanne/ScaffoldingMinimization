@@ -2,7 +2,8 @@
 #include <Eigen/Dense>
 #include <eigen-quadprog/QuadProg.h>
 #include <map>
-
+#define ACTIVE_SET_CPP_DEBUG
+#include "igl/active_set.h"
 #include "Indexer.h"
 
 using namespace std;
@@ -23,7 +24,7 @@ class QuadraticSolver {
     };
 
     // This is to calculate weights from our estimated forces on the structure
-    double updateWeights();
+    igl::SolverStatus updateWeights();
 
     // This is to update the vertices with weights given to edges fixed
     double updateVertices();
@@ -64,7 +65,7 @@ class QuadraticSolver {
     MatrixXd getNewDual();
     bool checkDual(MatrixXd &dualVerts);
 
-    void unsupportANode();
+    void deleteANode();
 
     MatrixXd &V;
     VectorXd vec;

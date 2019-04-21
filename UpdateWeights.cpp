@@ -1,9 +1,11 @@
 #include <iostream>
+#include <Eigen/Sparse>
 #include "QuadraticSolver.h"
+
 // #define DEBUG
 // #define CHECK_WEIGHTS
 
-double QuadraticSolver::updateWeights() {
+igl::SolverStatus QuadraticSolver::updateWeights() {
     // We will only ever constrain or check the weights of internal nodes
     // as the others are clamped down at the edges
     unsigned int rowSize = int(V.rows());
@@ -16,10 +18,6 @@ double QuadraticSolver::updateWeights() {
         cout << internalNode << " , ";
     }
     cout << endl;
-    // cout << "The edges we have are ";
-    // for (auto edge : edges) {
-    //     cout << edge.first << " , " << edge.second << endl;
-    // }
     cout << "The vertices are " << endl;
     for (int i = 0; i < V.rows(); i++) {
         cout << V.row(i) << endl;
@@ -33,22 +31,22 @@ double QuadraticSolver::updateWeights() {
     // Due to the fact that each edge is represented twice in the set
     unsigned int numEdges = edges.size() / 2;
     int ZERO = 0;
+
     int ONE = 1;
     // This will be the array of differences of the z values
     // each row consists of a single vertex
     // initialize values to zero
     // innerSize = number of rows
     // TODO: MULTIPLY BY TWO
-    MatrixXd zDiff = MatrixXd::Constant(internalSize, numEdges, 0);
+    SparseMatrix<double> zDiff(internalSize, numEdges);
 
     // This matrix is two rows for every vertex: one is diff in x for
     // each edge, and one is diff in y
     // This will be constrained to zero.
-    MatrixXd xyDiff = MatrixXd::Constant(numEdges, internalSize * 2, 0);
+    SparseMatrix<double> xyDiff(numEdges, internalSize * 2);
 
-    // This is the identity matrix, to help us constrain the weights
-    // to be positive
-    MatrixXd identity = MatrixXd::Identity(numEdges, numEdges);
+// This is the identity matrix, to help us constrain the weights
+// to be positive
 #ifdef DEBUG_DUP
     set<int> finishedNodes;
 #endif
@@ -99,8 +97,8 @@ double QuadraticSolver::updateWeights() {
                     finishedNodes.insert(currFace(j));
                 }
 #endif
-                zDiff(indr.indexVert(currIndex),
-                      indr.indexEdge(currIndex, index)) = zDiff1;
+                zDiff.coeffRef(indr.indexVert(currIndex),
+                             indr.indexEdge(currIndex, index)) = zDiff1;
 #ifdef DEBUG
                 cout << "We inserted" << zDiff1
                      << " into zDiff:" << indr.indexVert(currIndex) << " , "
@@ -108,10 +106,10 @@ double QuadraticSolver::updateWeights() {
                 cout << "The current vertex is " << currIndex
                      << " and the other vertex is " << index << endl;
 #endif
-                xyDiff(indr.indexEdge(currIndex, index),
-                       indr.indexVert(currIndex) * 2) = xDiff1;
-                xyDiff(indr.indexEdge(currIndex, index),
-                       indr.indexVert(currIndex) * 2 + 1) = yDiff1;
+                xyDiff.coeffRef(indr.indexEdge(currIndex, index),
+                                indr.indexVert(currIndex) * 2 ) = xDiff1;
+                xyDiff.coeffRef(indr.indexEdge(currIndex, index),
+                                indr.indexVert(currIndex) * 2 + 1) = yDiff1;
 #ifdef DEBUG
                 cout << "Now for xyDiff" << endl;
                 cout << "We inserted" << xDiff1 << " and " << yDiff1 << "into "
@@ -138,15 +136,20 @@ double QuadraticSolver::updateWeights() {
     cout << "zDiffT is " << zDiffT << endl;
 #endif
     cout << "Created a bunch of vectors!" << endl;
-    RowVectorXd linearComponent(forces.transpose() * zDiff);
+    VectorXd linearComponent(forces.transpose() * zDiff);
     linearComponent *= 2;
+    cout << "The row vector is done! " << endl;
 
     // To construct the positive definite zDiff matrix, we must
     // multiply it with itself
     zDiff = zDiff.transpose() * zDiff;
+    cout << "Done transposing and multiplying!" << endl;
     // Change this to the eigen way of doing it
-    zDiff += (identity * pow(10, -15));
+    SparseMatrix<double> ident(zDiff.rows(), zDiff.rows());
+    ident.setIdentity();
+    zDiff = zDiff + (ident * pow(10, -15));
     zDiff *= 2;
+    cout << "The zDiff is totally done!" << endl;
 
 #ifdef DEBUG
     cout << "The ZDiff we pass is " << zDiff << endl;
@@ -157,12 +160,34 @@ double QuadraticSolver::updateWeights() {
          << xyDiff.ncols() << endl;
     cout << "The identity is" << identity << endl;
 #endif
+    xyDiff = xyDiff.transpose();
     cout << "Starting quadprog" << endl;
     // Fix this to be the other one
     QuadProgDense problem;
-    bool success = problem.solve(zDiff, linearComponent, xyDiff, justZerosForXY,
-                            identity, justZerosForPos);
-    weights = problem.result();
+
+    Eigen::VectorXd emptyVec;
+    Eigen::VectorXi emptyVeck;
+    Eigen::VectorXd emptyVecY;
+    Eigen::VectorXd emptyVeclx;
+    Eigen::VectorXd emptyVeclu;
+
+    igl::SolverStatus stat =
+        igl::active_set(zDiff,
+                        linearComponent,
+                        emptyVeck,
+                        emptyVecY,
+                        xyDiff,
+                        justZerosForXY,
+                        ident,
+                        justZerosForPos,
+                        emptyVeclx,
+                        emptyVeclu,
+                        igl::active_set_params(),
+                        weights);
+    if(stat != 0 && stat != 1) {
+        cerr << "The active set had a bad outcome!" << endl;
+        throw new exception();
+    }
     cout << "Finished quadprog!" << endl;
 #ifdef CHECK_WEIGHTS
     double checkWeights = 0;
@@ -180,5 +205,5 @@ double QuadraticSolver::updateWeights() {
              << edge.first.first << " , " << edge.first.second << endl;
 #endif
     }
-    return success;
+    return stat;
 }
