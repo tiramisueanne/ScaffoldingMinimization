@@ -12,17 +12,6 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     unsigned int internalSize = unsupportedNodes.size();
     // Might have to update this, use the method
     forces = getForces();
-#ifdef DEBUG
-    cout << "The unsupportedNodes were " << endl;
-    for (auto internalNode : unsupportedNodes) {
-        cout << internalNode << " , ";
-    }
-    cout << endl;
-    cout << "The vertices are " << endl;
-    for (int i = 0; i < V.rows(); i++) {
-        cout << V.row(i) << endl;
-    }
-#endif
     if (edges.size() % 2 != 0) {
         cerr << "We do not have an even number of edges!" << endl;
         throw new exception();
@@ -67,11 +56,6 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
         for (int j = 0; j < 3; j++) {
             int currIndex = currFace(j);
             if (unsupportedNodes.find(currIndex) == unsupportedNodes.end()) {
-#ifdef DEBUG
-                cout << "We skipped an external Index in filling in our mats"
-                     << endl;
-                cout << "The node was " << currIndex << endl;
-#endif
                 continue;
             }
             // TODO: we can make this 1
@@ -99,13 +83,6 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
 #endif
                 zDiff.coeffRef(indr.indexVert(currIndex),
                              indr.indexEdge(currIndex, index)) = zDiff1;
-#ifdef DEBUG
-                cout << "We inserted" << zDiff1
-                     << " into zDiff:" << indr.indexVert(currIndex) << " , "
-                     << indr.indexEdge(currIndex, index) << endl;
-                cout << "The current vertex is " << currIndex
-                     << " and the other vertex is " << index << endl;
-#endif
                 xDiff.coeffRef(indr.indexEdge(currIndex, index),
                                 indr.indexVert(currIndex)) = xDiff1;
                 yDiff.coeffRef(indr.indexEdge(currIndex, index),
@@ -124,10 +101,6 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
 
 // Since weights is already a row vector, we do not have to
 // transpose it
-#ifdef DEBUG
-    cout << "zDiff is" << zDiff << endl;
-    cout << "zDiffT is " << zDiffT << endl;
-#endif
     cout << "Created a bunch of vectors!" << endl;
     VectorXd linearComponent(forces.transpose() * zDiff);
     linearComponent *= 2;
@@ -156,6 +129,9 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     Eigen::VectorXd allZerosLx = VectorXd::Constant(zDiff.rows(), 0);
     Eigen::VectorXd emptyVeclu;
 
+    igl::active_set_params param = igl::active_set_params();
+    param.max_iter = 200;
+
     igl::SolverStatus stat =
         igl::active_set(zDiff,
                         linearComponent,
@@ -167,22 +143,13 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
                         justZerosForInternal,
                         allZerosLx,
                         emptyVeclu,
-                        igl::active_set_params(),
+                        param,
                         weights);
     if(stat != 0 && stat != 1) {
         cerr << "The active set had a bad outcome!" << endl;
         throw new exception();
     }
     cout << "Finished quadprog!" << endl;
-#ifdef CHECK_WEIGHTS
-    double checkWeights = 0;
-    for (const auto edge : indr.edgeMap()) {
-        checkWeights += weights[edge.second] * weights[edge.second];
-    }
-    checkWeights *= pow(10, -11);
-    cout << "The checkWeights was" << checkWeights << endl;
-    cout << "CheckWeights *= 2 is " << checkWeights * 2 << endl;
-#endif
     for (const auto edge : indr.edgeMap()) {
         weightMap[edge.first] = weights[edge.second];
 #ifdef DEBUG

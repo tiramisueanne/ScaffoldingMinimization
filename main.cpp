@@ -24,7 +24,7 @@ using namespace Eigen;
 // #define DUALS
 // #define CHECKDUALS
 // #define CHECKBIGMESH
-#define CHECKBIGGER
+// #define CHECKBIGGER
 // #define JUST_SHOW
 
 int main(int argc, char *argv[]) {
@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
 // This is the flood fill of finding the gradient and creating newVertices
 #if !defined(JUST_SHOW)
     QuadraticSolver qs(V, F, isHand);
-    double success = 0;
+    double success = 1;
     double sum = qs.getTotalForce();
     int count = 0;
 #ifdef DEBUG
@@ -64,14 +64,9 @@ int main(int argc, char *argv[]) {
 #endif
 #if !defined(DUALS)
     cout << "The fabs value was " << fabs(success + sum) << endl;
-    while (fabs(success + sum) > 0.000001 && count < countStop) {
-        success = 0;
-        success += qs.updateWeights();
-        cout << "The success value of succ is " << success << endl;
-        cout << "The success value of succ and sum is " << sum + success
-             << endl;
+    while (success == 1 && count < countStop) {
+        success = qs.updateWeights();
         double updateSuccess = qs.updateVertices();
-        cout << "the success value of updating was " << updateSuccess << endl;
         count++;
     }
     cout << "Iterated on this shape " << count << " times" << endl;

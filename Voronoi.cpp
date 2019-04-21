@@ -32,5 +32,6 @@ Eigen::MatrixXd QuadraticSolver::getForceAreas() {
 
 
 Eigen::VectorXd QuadraticSolver::getForceDensities() {
-    return VectorXd::Constant(V.rows(),  -1 * pow(10, 3));
+    double toAdd = 1;
+    return VectorXd::Constant(V.rows(),  -1 * toAdd);
 }

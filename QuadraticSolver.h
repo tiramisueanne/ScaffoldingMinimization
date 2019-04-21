@@ -3,6 +3,7 @@
 #include <eigen-quadprog/QuadProg.h>
 #include <map>
 #define ACTIVE_SET_CPP_DEBUG
+// #define MIN_QUAD_WITH_FIXED_CPP_DEBUG
 #include "igl/active_set.h"
 #include "Indexer.h"
 
@@ -27,7 +28,7 @@ class QuadraticSolver {
     igl::SolverStatus updateWeights();
 
     // This is to update the vertices with weights given to edges fixed
-    double updateVertices();
+    igl::SolverStatus updateVertices();
 
     // This is how we estimate the forces
     MatrixXd getForces();
