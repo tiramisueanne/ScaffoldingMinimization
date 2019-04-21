@@ -43,8 +43,8 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     // This matrix is two rows for every vertex: one is diff in x for
     // each edge, and one is diff in y
     // This will be constrained to zero.
-    SparseMatrix<double> xyDiff(numEdges, internalSize * 2);
-
+    SparseMatrix<double> xDiff(numEdges, internalSize);
+    SparseMatrix<double> yDiff(numEdges, internalSize);
 // This is the identity matrix, to help us constrain the weights
 // to be positive
 #ifdef DEBUG_DUP
@@ -106,16 +106,10 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
                 cout << "The current vertex is " << currIndex
                      << " and the other vertex is " << index << endl;
 #endif
-                xyDiff.coeffRef(indr.indexEdge(currIndex, index),
-                                indr.indexVert(currIndex) * 2 ) = xDiff1;
-                xyDiff.coeffRef(indr.indexEdge(currIndex, index),
-                                indr.indexVert(currIndex) * 2 + 1) = yDiff1;
-#ifdef DEBUG
-                cout << "Now for xyDiff" << endl;
-                cout << "We inserted" << xDiff1 << " and " << yDiff1 << "into "
-                     << indr.indexEdge(currIndex, index) << " , "
-                     << indr.indexVert(currIndex) * 2 << endl;
-#endif
+                xDiff.coeffRef(indr.indexEdge(currIndex, index),
+                                indr.indexVert(currIndex)) = xDiff1;
+                yDiff.coeffRef(indr.indexEdge(currIndex, index),
+                                indr.indexVert(currIndex)) = yDiff1;
             }
         }
     }
@@ -126,8 +120,7 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     // mWeights.setColumn(0, weights);
     VectorXd justOnes = VectorXd::Constant(numEdges, 1);
     // The vector we add to the result of the constraint
-    VectorXd justZerosForXY = VectorXd::Constant(internalSize * 2, 0);
-    VectorXd justZerosForPos = VectorXd::Constant(numEdges, 0);
+    VectorXd justZerosForInternal = VectorXd::Constant(internalSize, 0);
 
 // Since weights is already a row vector, we do not have to
 // transpose it
@@ -151,16 +144,8 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     zDiff *= 2;
     cout << "The zDiff is totally done!" << endl;
 
-#ifdef DEBUG
-    cout << "The ZDiff we pass is " << zDiff << endl;
-    cout << "The linearComponent is" << linearComponent << endl;
-    cout << "The forces are " << forces << endl;
-    cout << "The xyDiff is" << xyDiff << endl;
-    cout << "The dimensions of xyDiff is" << xyDiff.nrows() << " , "
-         << xyDiff.ncols() << endl;
-    cout << "The identity is" << identity << endl;
-#endif
-    xyDiff = xyDiff.transpose();
+    xDiff = xDiff.transpose();
+    yDiff = yDiff.transpose();
     cout << "Starting quadprog" << endl;
     // Fix this to be the other one
     QuadProgDense problem;
@@ -168,7 +153,7 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     Eigen::VectorXd emptyVec;
     Eigen::VectorXi emptyVeck;
     Eigen::VectorXd emptyVecY;
-    Eigen::VectorXd emptyVeclx;
+    Eigen::VectorXd allZerosLx = VectorXd::Constant(zDiff.rows(), 0);
     Eigen::VectorXd emptyVeclu;
 
     igl::SolverStatus stat =
@@ -176,11 +161,11 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
                         linearComponent,
                         emptyVeck,
                         emptyVecY,
-                        xyDiff,
-                        justZerosForXY,
-                        ident,
-                        justZerosForPos,
-                        emptyVeclx,
+                        xDiff,
+                        justZerosForInternal,
+                        yDiff,
+                        justZerosForInternal,
+                        allZerosLx,
                         emptyVeclu,
                         igl::active_set_params(),
                         weights);
