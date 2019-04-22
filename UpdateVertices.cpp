@@ -25,13 +25,13 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
 
     SparseMatrix<double> xValues(unsupportedNodes.size(),
                                   unsupportedNodes.size() * V.cols());
-    SparseMatrix<double> yValues(unsupportedNodes.size(),
+    SparseMatrix<double> yValues(unsupportedNodes.size() * 2,
                                   unsupportedNodes.size() * V.cols());
 
 
     VectorXd zConstant = VectorXd::Constant(unsupportedNodes.size(), 0);
     VectorXd xConstant = VectorXd::Constant(unsupportedNodes.size(), 0);
-    VectorXd yConstant = VectorXd::Constant(unsupportedNodes.size(), 0);
+    VectorXd yConstant = VectorXd::Constant(unsupportedNodes.size() * 2, 0);
 
     // Go through each edge and add weights
     for (const pair<pair<int, int>, double>& edge_weight : weightMap) {
@@ -44,8 +44,11 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
                              indr.indexBigVert(edge.first, ZDim)) += weight;
             xValues.coeffRef(indr.indexVert(edge.first),
                               indr.indexBigVert(edge.first, XDim)) += weight;
-            yValues.coeffRef(indr.indexVert(edge.first),
+            yValues.coeffRef(indr.indexVert(edge.first) * 2,
                               indr.indexBigVert(edge.first, YDim)) += weight;
+            yValues.coeffRef(indr.indexVert(edge.first) * 2 + 1,
+                             indr.indexBigVert(edge.first, YDim)) -= weight;
+
 
         } else {
             continue;
@@ -57,9 +60,10 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
                              indr.indexBigVert(edge.second, ZDim)) -= weight;
             xValues.coeffRef(indr.indexVert(edge.first),
                               indr.indexBigVert(edge.second, XDim)) -= weight;
-            yValues.coeffRef(indr.indexVert(edge.first),
+            yValues.coeffRef(indr.indexVert(edge.first) * 2,
                               indr.indexBigVert(edge.second, YDim)) -= weight;
-
+            yValues.coeffRef(indr.indexVert(edge.first) * 2 + 1,
+                             indr.indexBigVert(edge.second, YDim)) += weight;
         } else {
             zConstant(indr.indexVert(edge.first)) -=
                 weight * V.row(edge.second).z();
@@ -71,8 +75,10 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
             xConstant(indr.indexVert(edge.first)) -=
                 weight * V.row(edge.second).x();
 
-            yConstant(indr.indexVert(edge.first)) -=
-                weight * V.row(edge.second).x();
+            yConstant(indr.indexVert(edge.first) * 2) -=
+                weight * V.row(edge.second).y();
+            yConstant(indr.indexVert(edge.first) * 2 + 1) +=
+                weight * V.row(edge.second).y();
         }
     }
     // For all forces, go through and add to zValues
