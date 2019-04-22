@@ -2,7 +2,7 @@
 #include <Eigen/Dense>
 #include <eigen-quadprog/QuadProg.h>
 #include <map>
-#define ACTIVE_SET_CPP_DEBUG
+// #define ACTIVE_SET_CPP_DEBUG
 // #define MIN_QUAD_WITH_FIXED_CPP_DEBUG
 #include "igl/active_set.h"
 #include "Indexer.h"

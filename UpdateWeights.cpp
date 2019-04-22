@@ -163,11 +163,16 @@ bool QuadraticSolver::checkWeights() {
         if (processedEdges.find(edge) == processedEdges.end()) {
             double differenceZ = V(edge.first, 2) - V(edge.second, 2);
             double differenceY = V(edge.first, 1) - V(edge.second, 1);
+            double differenceX = V(edge.first, 0) - V(edge.second, 0);
+
             if (unsupportedNodes.find(edge.first) != unsupportedNodes.end()) {
                 unsupportedNodeVals(indr.indexVert(edge.first), 2) +=
                     weightMap[edge] * differenceZ;
                 unsupportedNodeVals(indr.indexVert(edge.first), 1) +=
                     weightMap[edge] * differenceY;
+                unsupportedNodeVals(indr.indexVert(edge.first), 0) +=
+                    weightMap[edge] * differenceX;
+
             }
             if (unsupportedNodes.find(edge.second) != unsupportedNodes.end()) {
                 unsupportedNodeVals(indr.indexVert(edge.second), 2) +=
@@ -175,16 +180,21 @@ bool QuadraticSolver::checkWeights() {
 
                 unsupportedNodeVals(indr.indexVert(edge.second), 1) +=
                     -1 * weightMap[edge] * differenceY;
+                unsupportedNodeVals(indr.indexVert(edge.second), 0) +=
+                    -1 * weightMap[edge] * differenceX;
             }
             processedEdges.insert(edge);
             processedEdges.insert({edge.second, edge.first});
         }
     }
     for (int i = 0; i < unsupportedNodes.size(); i++) {
-        assert(fabs(unsupportedNodeVals(i, 2) + forces(i)) < 0.01);
+
+        cout << "The X value for this unsupported Node is " << unsupportedNodeVals(i, 0) << endl;
+        assert(fabs(unsupportedNodeVals(i, 0)) < 0.01);
         cout << "The Y value for this unsupported node is"
              << unsupportedNodeVals(i, 1) << endl;
         assert(fabs(unsupportedNodeVals(i, 1)) < 0.01);
+        assert(fabs(unsupportedNodeVals(i, 2) + forces(i)) < 0.01);
     }
     return true;
 }
