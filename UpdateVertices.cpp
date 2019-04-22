@@ -81,10 +81,16 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
                 weight * V.row(edge.second).y();
         }
     }
+    #ifdef DEBUG
+    cout << "The zConstant is " << endl;
+    #endif
     // For all forces, go through and add to zValues
     for (int i = 0; i < forces.rows(); i++) {
         // TODO: this requires no indexing right now, because it's all constants
         zConstant(i) += forces(i);
+        #ifdef DEBUG
+        cout << zConstant << " , " << endl;
+        #endif
     }
 
     // Our quadratic var
@@ -100,7 +106,7 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
 
     // Set up the linear component
     VectorXd linearComp = vec;
-    linearComp *= 2 * movementWeight;
+    linearComp *= -2 * movementWeight;
     VectorXd zValPart = zConstant.transpose() * zValues;
     zValPart *= 2 * zValWeight;
     linearComp += zValPart;

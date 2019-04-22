@@ -10,12 +10,23 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     // as the others are clamped down at the edges
     unsigned int rowSize = int(V.rows());
     unsigned int internalSize = unsupportedNodes.size();
+
     // Might have to update this, use the method
     forces = getForces();
     if (edges.size() % 2 != 0) {
         cerr << "We do not have an even number of edges!" << endl;
         throw new exception();
     }
+
+#ifdef DEBUG
+    cout << "The current V's are " << endl;
+    for (int i = 0; i < V.rows(); i++) {
+        for (int j = 0; j < V.cols(); j++) {
+            cout << V(i, j) << " , ";
+        }
+        cout << endl;
+    }
+#endif
 
     // Due to the fact that each edge is represented twice in the set
     unsigned int numEdges = edges.size() / 2;
@@ -94,9 +105,6 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     }
     cout << "Finished filling up the zDiff and xyDiff" << endl;
     // just set this to all zeros
-    // qp::Matrix<double> mWeights(numEdges, 1);
-    // mWeights.setColumn(0, weights);
-    VectorXd justOnes = VectorXd::Constant(numEdges, 1);
     // The vector we add to the result of the constraint
     VectorXd justZerosForX = VectorXd::Constant(internalSize, 0);
     VectorXd justZerosForY = VectorXd::Constant(internalSize * 2, 0);
@@ -107,6 +115,15 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     VectorXd linearComponent(forces.transpose() * zDiff);
     linearComponent *= 2;
     cout << "The row vector is done! " << endl;
+#ifdef DEBUG
+    cout << "The values of zDiff" << endl;
+    for (int i = 0; i < zDiff.rows(); i++) {
+        for (int j = 0; j < zDiff.cols(); j++) {
+            cout << zDiff.coeffRef(i, j) << " , ";
+        }
+        cout << endl;
+    }
+#endif
 
     // To construct the positive definite zDiff matrix, we must
     // multiply it with itself
@@ -121,6 +138,30 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
 
     xDiff = xDiff.transpose();
     yDiff = yDiff.transpose();
+#ifdef DEBUG
+    cout << "The values of the quadCoeff" << endl;
+    for (int i = 0; i < zDiff.rows(); i++) {
+        for (int j = 0; j < zDiff.cols(); j++) {
+            cout << zDiff.coeffRef(i, j) << " , ";
+        }
+        cout << endl;
+    }
+    cout << "The Values of xDiff is " << endl;
+    for (int i = 0; i < xDiff.rows(); i++) {
+        for (int j = 0; j < xDiff.cols(); j++) {
+            cout << xDiff.coeffRef(i, j) << " , ";
+        }
+        cout << endl;
+    }
+    cout << "The Values of yDiff is " << endl;
+    for (int i = 0; i < yDiff.rows(); i++) {
+        for (int j = 0; j < yDiff.cols(); j++) {
+            cout << yDiff.coeffRef(i, j) << " , ";
+        }
+        cout << endl;
+    }
+#endif
+
     cout << "Starting quadprog" << endl;
     // Fix this to be the other one
     QuadProgDense problem;
@@ -171,7 +212,6 @@ bool QuadraticSolver::checkWeights() {
                     weightMap[edge] * differenceY;
                 unsupportedNodeVals(indr.indexVert(edge.first), 0) +=
                     weightMap[edge] * differenceX;
-
             }
             if (unsupportedNodes.find(edge.second) != unsupportedNodes.end()) {
                 unsupportedNodeVals(indr.indexVert(edge.second), 2) +=
@@ -186,14 +226,18 @@ bool QuadraticSolver::checkWeights() {
             processedEdges.insert({edge.second, edge.first});
         }
     }
-    for (int i = 0; i < unsupportedNodes.size(); i++) {
-
-        cout << "The X value for this unsupported Node is " << unsupportedNodeVals(i, 0) << endl;
-        assert(fabs(unsupportedNodeVals(i, 0)) < 0.01);
+    for (const auto node : unsupportedNodes) {
+        cout << "This unsupported node is" << node << endl;
+        cout << "The X value for this unsupported Node is "
+             << unsupportedNodeVals(indr.indexVert(node), 0) << endl;
         cout << "The Y value for this unsupported node is"
-             << unsupportedNodeVals(i, 1) << endl;
-        assert(fabs(unsupportedNodeVals(i, 1)) < 0.01);
-        assert(fabs(unsupportedNodeVals(i, 2) + forces(i)) < 0.01);
+             << unsupportedNodeVals(indr.indexVert(node), 1) << endl;
+        cout << "The Z value for this unsupported node is"
+             << unsupportedNodeVals(indr.indexVert(node), 2) << endl;
+        cout << "The force for this unsupported node is"
+             << forces(indr.indexVert(node)) << endl;
+        assert(fabs(unsupportedNodeVals(indr.indexVert(node), 0)) < 0.01);
+        assert(fabs(unsupportedNodeVals(indr.indexVert(node), 1)) < 0.01);
     }
     return true;
 }
