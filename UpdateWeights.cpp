@@ -33,7 +33,7 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     // each edge, and one is diff in y
     // This will be constrained to zero.
     SparseMatrix<double> xDiff(numEdges, internalSize);
-    SparseMatrix<double> yDiff(numEdges, internalSize);
+    SparseMatrix<double> yDiff(numEdges, internalSize * 2);
 // This is the identity matrix, to help us constrain the weights
 // to be positive
 #ifdef DEBUG_DUP
@@ -86,7 +86,9 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
                 xDiff.coeffRef(indr.indexEdge(currIndex, index),
                                indr.indexVert(currIndex)) = xDiff1;
                 yDiff.coeffRef(indr.indexEdge(currIndex, index),
-                               indr.indexVert(currIndex)) = yDiff1;
+                               indr.indexVert(currIndex) * 2) = yDiff1;
+                yDiff.coeffRef(indr.indexEdge(currIndex, index),
+                               indr.indexVert(currIndex) * 2 + 1) = -1 * yDiff1;
             }
         }
     }
@@ -97,7 +99,8 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     // mWeights.setColumn(0, weights);
     VectorXd justOnes = VectorXd::Constant(numEdges, 1);
     // The vector we add to the result of the constraint
-    VectorXd justZerosForInternal = VectorXd::Constant(internalSize, 0);
+    VectorXd justZerosForX = VectorXd::Constant(internalSize, 0);
+    VectorXd justZerosForY = VectorXd::Constant(internalSize * 2, 0);
 
     // Since weights is already a row vector, we do not have to
     // transpose it
@@ -130,12 +133,11 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     Eigen::VectorXd emptyVeclu;
 
     igl::active_set_params param = igl::active_set_params();
-    param.max_iter = 0;
+    param.max_iter = 200;
 
-    igl::SolverStatus stat =
-        igl::active_set(zDiff, linearComponent, emptyVeck, emptyVecY, xDiff,
-                        justZerosForInternal, yDiff, justZerosForInternal,
-                        allZerosLx, emptyVeclu, param, weights);
+    igl::SolverStatus stat = igl::active_set(
+        zDiff, linearComponent, emptyVeck, emptyVecY, xDiff, justZerosForX,
+        yDiff, justZerosForY, allZerosLx, emptyVeclu, param, weights);
     if (stat != 0 && stat != 1) {
         cerr << "The active set had a bad outcome!" << endl;
         throw new exception();
@@ -154,27 +156,35 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
 
 bool QuadraticSolver::checkWeights() {
     // Add up all of the weight * edge for each internalNode i
-    VectorXd unsupportedNodeVals =
-        VectorXd::Constant(unsupportedNodes.size(), 0);
+    MatrixXd unsupportedNodeVals =
+        MatrixXd::Constant(unsupportedNodes.size(), 3, 0);
     set<pair<int, int>> processedEdges;
     for (const auto edge : edges) {
         if (processedEdges.find(edge) == processedEdges.end()) {
-            double difference = V(edge.first, 2) - V(edge.second, 2);
+            double differenceZ = V(edge.first, 2) - V(edge.second, 2);
+            double differenceY = V(edge.first, 1) - V(edge.second, 1);
             if (unsupportedNodes.find(edge.first) != unsupportedNodes.end()) {
-                unsupportedNodeVals(indr.indexVert(edge.first)) +=
-                    weightMap[edge] * difference;
+                unsupportedNodeVals(indr.indexVert(edge.first), 2) +=
+                    weightMap[edge] * differenceZ;
+                unsupportedNodeVals(indr.indexVert(edge.first), 1) +=
+                    weightMap[edge] * differenceY;
             }
-
             if (unsupportedNodes.find(edge.second) != unsupportedNodes.end()) {
-                unsupportedNodeVals(indr.indexVert(edge.second)) +=
-                    -1 * weightMap[edge] * difference;
+                unsupportedNodeVals(indr.indexVert(edge.second), 2) +=
+                    -1 * weightMap[edge] * differenceZ;
+
+                unsupportedNodeVals(indr.indexVert(edge.second), 1) +=
+                    -1 * weightMap[edge] * differenceY;
             }
             processedEdges.insert(edge);
             processedEdges.insert({edge.second, edge.first});
         }
     }
     for (int i = 0; i < unsupportedNodes.size(); i++) {
-        assert(fabs(unsupportedNodeVals(i) + forces(i)) < 0.01);
+        assert(fabs(unsupportedNodeVals(i, 2) + forces(i)) < 0.01);
+        cout << "The Y value for this unsupported node is"
+             << unsupportedNodeVals(i, 1) << endl;
+        assert(fabs(unsupportedNodeVals(i, 1)) < 0.01);
     }
     return true;
 }
