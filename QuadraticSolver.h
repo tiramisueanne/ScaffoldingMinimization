@@ -22,6 +22,7 @@ class QuadraticSolver {
         cout << "Indexer all done!" << endl;
         createLaplacian(isHand);
         cout << "Laplacian also complete" << endl;
+        weights = VectorXd::Constant(edges.size() / 2, 0);
     };
 
     // This is to calculate weights from our estimated forces on the structure

@@ -94,7 +94,6 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     }
     cout << "Finished filling up the zDiff and xyDiff" << endl;
     // just set this to all zeros
-    weights = VectorXd::Constant(numEdges, 0);
     // qp::Matrix<double> mWeights(numEdges, 1);
     // mWeights.setColumn(0, weights);
     VectorXd justOnes = VectorXd::Constant(numEdges, 1);
