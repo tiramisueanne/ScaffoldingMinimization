@@ -11,10 +11,8 @@ using namespace std;
 using namespace Eigen;
 namespace qp = quadprogpp;
 
-// #define DEBUG
-
 // A method for getting the calculated weight for each vertex
-MatrixXd QuadraticSolver::getForces() {
+VectorXd QuadraticSolver::getForces() {
     const int ZERO = 0;
     forces = VectorXd(unsupportedNodes.size());
     VectorXd areas = getForceAreas();

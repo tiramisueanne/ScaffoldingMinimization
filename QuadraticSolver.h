@@ -31,7 +31,7 @@ class QuadraticSolver {
     igl::SolverStatus updateVertices();
 
     // This is how we estimate the forces
-    MatrixXd getForces();
+    VectorXd getForces();
 
     Eigen::MatrixXd getForceAreas();
     Eigen::VectorXd getForceDensities();
@@ -65,6 +65,7 @@ class QuadraticSolver {
 
     MatrixXd getNewDual();
     bool checkDual(MatrixXd &dualVerts);
+    bool checkWeights();
 
     void deleteANode();
 

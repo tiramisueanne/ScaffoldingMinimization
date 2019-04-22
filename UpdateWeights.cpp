@@ -1,8 +1,8 @@
-#include <iostream>
 #include <Eigen/Sparse>
+#include <iostream>
 #include "QuadraticSolver.h"
 
-// #define DEBUG
+#define DEBUG
 // #define CHECK_WEIGHTS
 
 igl::SolverStatus QuadraticSolver::updateWeights() {
@@ -82,11 +82,11 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
                 }
 #endif
                 zDiff.coeffRef(indr.indexVert(currIndex),
-                             indr.indexEdge(currIndex, index)) = zDiff1;
+                               indr.indexEdge(currIndex, index)) = zDiff1;
                 xDiff.coeffRef(indr.indexEdge(currIndex, index),
-                                indr.indexVert(currIndex)) = xDiff1;
+                               indr.indexVert(currIndex)) = xDiff1;
                 yDiff.coeffRef(indr.indexEdge(currIndex, index),
-                                indr.indexVert(currIndex)) = yDiff1;
+                               indr.indexVert(currIndex)) = yDiff1;
             }
         }
     }
@@ -99,8 +99,8 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     // The vector we add to the result of the constraint
     VectorXd justZerosForInternal = VectorXd::Constant(internalSize, 0);
 
-// Since weights is already a row vector, we do not have to
-// transpose it
+    // Since weights is already a row vector, we do not have to
+    // transpose it
     cout << "Created a bunch of vectors!" << endl;
     VectorXd linearComponent(forces.transpose() * zDiff);
     linearComponent *= 2;
@@ -130,22 +130,13 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     Eigen::VectorXd emptyVeclu;
 
     igl::active_set_params param = igl::active_set_params();
-    param.max_iter = 200;
+    param.max_iter = 0;
 
     igl::SolverStatus stat =
-        igl::active_set(zDiff,
-                        linearComponent,
-                        emptyVeck,
-                        emptyVecY,
-                        xDiff,
-                        justZerosForInternal,
-                        yDiff,
-                        justZerosForInternal,
-                        allZerosLx,
-                        emptyVeclu,
-                        param,
-                        weights);
-    if(stat != 0 && stat != 1) {
+        igl::active_set(zDiff, linearComponent, emptyVeck, emptyVecY, xDiff,
+                        justZerosForInternal, yDiff, justZerosForInternal,
+                        allZerosLx, emptyVeclu, param, weights);
+    if (stat != 0 && stat != 1) {
         cerr << "The active set had a bad outcome!" << endl;
         throw new exception();
     }
@@ -157,5 +148,33 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
              << edge.first.first << " , " << edge.first.second << endl;
 #endif
     }
+    checkWeights();
     return stat;
+}
+
+bool QuadraticSolver::checkWeights() {
+    // Add up all of the weight * edge for each internalNode i
+    VectorXd unsupportedNodeVals =
+        VectorXd::Constant(unsupportedNodes.size(), 0);
+    set<pair<int, int>> processedEdges;
+    for (const auto edge : edges) {
+        if (processedEdges.find(edge) == processedEdges.end()) {
+            double difference = V(edge.first, 2) - V(edge.second, 2);
+            if (unsupportedNodes.find(edge.first) != unsupportedNodes.end()) {
+                unsupportedNodeVals(indr.indexVert(edge.first)) +=
+                    weightMap[edge] * difference;
+            }
+
+            if (unsupportedNodes.find(edge.second) != unsupportedNodes.end()) {
+                unsupportedNodeVals(indr.indexVert(edge.second)) +=
+                    -1 * weightMap[edge] * difference;
+            }
+            processedEdges.insert(edge);
+            processedEdges.insert({edge.second, edge.first});
+        }
+    }
+    for (int i = 0; i < unsupportedNodes.size(); i++) {
+        assert(fabs(unsupportedNodeVals(i) + forces(i)) < 0.01);
+    }
+    return true;
 }

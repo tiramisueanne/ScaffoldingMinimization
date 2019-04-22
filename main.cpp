@@ -24,7 +24,7 @@ using namespace Eigen;
 // #define DUALS
 // #define CHECKDUALS
 // #define CHECKBIGMESH
-// #define CHECKBIGGER
+#define CHECKBIGGER
 // #define JUST_SHOW
 
 int main(int argc, char *argv[]) {
@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
         isHand = true;
 #endif
 #ifdef CHECKBIGGER
-        evenBiggerMesh(V, F);
+        initBiggerMesh(V, F);
         isHand = true;
 #endif
     }

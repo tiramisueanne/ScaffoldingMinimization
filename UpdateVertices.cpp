@@ -4,7 +4,7 @@
 using namespace std;
 using namespace Eigen;
 
-// #define DEBUG
+#define DEBUG
 #define USE_Z_OPT
 // #define CHECK_Z
 
@@ -21,13 +21,17 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
 
     // Create the new zDiff struct
     SparseMatrix<double> zValues(unsupportedNodes.size(),
-                                           unsupportedNodes.size() * V.cols());
+                                 unsupportedNodes.size() * V.cols());
 
-    SparseMatrix<double> xyValues(unsupportedNodes.size() * 2,
-                      unsupportedNodes.size() * V.cols());
+    SparseMatrix<double> xValues(unsupportedNodes.size(),
+                                  unsupportedNodes.size() * V.cols());
+    SparseMatrix<double> yValues(unsupportedNodes.size(),
+                                  unsupportedNodes.size() * V.cols());
+
 
     VectorXd zConstant = VectorXd::Constant(unsupportedNodes.size(), 0);
-    VectorXd xyConstant = VectorXd::Constant(unsupportedNodes.size() * 2, 0);
+    VectorXd xConstant = VectorXd::Constant(unsupportedNodes.size(), 0);
+    VectorXd yConstant = VectorXd::Constant(unsupportedNodes.size(), 0);
 
     // Go through each edge and add weights
     for (const pair<pair<int, int>, double>& edge_weight : weightMap) {
@@ -37,11 +41,11 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
         // If this is a row to constrain
         if (unsupportedNodes.find(edge.first) != unsupportedNodes.end()) {
             zValues.coeffRef(indr.indexVert(edge.first),
-                    indr.indexBigVert(edge.first, ZDim)) += weight;
-            xyValues.coeffRef(indr.indexVert(edge.first) * 2,
-                     indr.indexBigVert(edge.first, XDim)) += weight;
-            xyValues.coeffRef(indr.indexVert(edge.first) * 2 + 1,
-                     indr.indexBigVert(edge.first, YDim)) += weight;
+                             indr.indexBigVert(edge.first, ZDim)) += weight;
+            xValues.coeffRef(indr.indexVert(edge.first),
+                              indr.indexBigVert(edge.first, XDim)) += weight;
+            yValues.coeffRef(indr.indexVert(edge.first),
+                              indr.indexBigVert(edge.first, YDim)) += weight;
 
         } else {
             continue;
@@ -50,11 +54,11 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
         // If this will be affected by our optimized nodes
         if (unsupportedNodes.find(edge.second) != unsupportedNodes.end()) {
             zValues.coeffRef(indr.indexVert(edge.first),
-                    indr.indexBigVert(edge.second, ZDim)) -= weight;
-            xyValues.coeffRef(indr.indexVert(edge.first) * 2,
-                     indr.indexBigVert(edge.second, XDim)) -= weight;
-            xyValues.coeffRef(indr.indexVert(edge.first) * 2 + 1,
-                     indr.indexBigVert(edge.second, YDim)) -= weight;
+                             indr.indexBigVert(edge.second, ZDim)) -= weight;
+            xValues.coeffRef(indr.indexVert(edge.first),
+                              indr.indexBigVert(edge.second, XDim)) -= weight;
+            yValues.coeffRef(indr.indexVert(edge.first),
+                              indr.indexBigVert(edge.second, YDim)) -= weight;
 
         } else {
             zConstant(indr.indexVert(edge.first)) -=
@@ -64,10 +68,11 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
                  << indr.indexVert(edge.first) << " to now force "
                  << zConstant[indr.indexVert(edge.first)] << endl;
 #endif
-            xyConstant(indr.indexVert(edge.first) * 2) -=
+            xConstant(indr.indexVert(edge.first)) -=
                 weight * V.row(edge.second).x();
-            xyConstant(indr.indexVert(edge.first) * 2 + 1) -=
-                weight * V.row(edge.second).y();
+
+            yConstant(indr.indexVert(edge.first)) -=
+                weight * V.row(edge.second).x();
         }
     }
     // For all forces, go through and add to zValues
@@ -80,7 +85,7 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
     // Make this a sparse boi
     SparseMatrix<double> quadCoeff = zValues.transpose() * zValues;
     double zValWeight = 1;
-    double movementWeight = 1;
+    double movementWeight = 0.3;
     quadCoeff *= zValWeight * zValWeight;
     for (int i = 0; i < quadCoeff.rows(); i++) {
         quadCoeff.coeffRef(i, i) += movementWeight * movementWeight;
@@ -90,10 +95,38 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
     // Set up the linear component
     VectorXd linearComp = vec;
     linearComp *= movementWeight;
-    VectorXd zValPart = forces.transpose() * zValues;
-    zValPart *= zValWeight;
+    VectorXd zValPart = zConstant.transpose() * zValues;
+    zValPart *= 2 * zValWeight;
     linearComp += zValPart;
-    linearComp *= -2;
+#ifdef DEBUG
+    cout << "The vec is " << endl;
+    for (int i = 0; i < vec.rows(); i++) {
+        cout << vec(i) << " , ";
+    }
+    cout << endl;
+    cout << "The zValues are" << endl;
+    for (int i = 0; i < zValues.rows(); i++) {
+        for (int j = 0; j < zValues.cols(); j++) {
+            cout << zValues.coeffRef(i, j) << " , ";
+        }
+        cout << endl;
+    }
+    cout << endl;
+    cout << "The quadCoeff is" << endl;
+    for (int i = 0; i < quadCoeff.rows(); i++) {
+        for (int j = 0; j < quadCoeff.cols(); j++) {
+            cout << quadCoeff.coeffRef(i, j) << " , ";
+        }
+        cout << endl;
+    }
+    cout << endl;
+
+    cout << "Linear comp is" << endl;
+    for (int i = 0; i < linearComp.rows(); i++) {
+        cout << linearComp(i) << " , ";
+    }
+    cout << endl;
+#endif
 
     VectorXi unknowns;
     VectorXd unknownVal;
@@ -102,26 +135,20 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
     VectorXd lu;
 
     // xyConstant should be =, while zValue can be >=
-    igl::SolverStatus stat = igl::active_set(quadCoeff,
-                                             linearComp,
-                                             unknowns,
-                                             unknownVal,
-                                             xyValues,
-                                             xyConstant,
-                                             zValues,
-                                             zConstant,
-                                             lx,
-                                             lu,
-                                             igl::active_set_params(),
-                                             vec);
+    igl::SolverStatus stat = igl::active_set(
+        quadCoeff, linearComp, unknowns, unknownVal, xValues, xConstant,
+        yValues, yConstant, lx, lu, igl::active_set_params(), vec);
     moveVecIntoV();
     return stat;
 }
 
 void QuadraticSolver::moveVecIntoV() {
+    cout << "The new V's were" << endl;
     for (auto row : unsupportedNodes) {
         for (int j = 0; j < V.cols(); j++) {
-            V(row, j) = vec[indr.indexBigVert(row, j)];
+            V(row, j) = vec(indr.indexBigVert(row, j));
+            cout << V(row, j) << " , ";
         }
+        cout << endl;
     }
 }
