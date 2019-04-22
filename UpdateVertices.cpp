@@ -91,16 +91,16 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
     // Make this a sparse boi
     SparseMatrix<double> quadCoeff = zValues.transpose() * zValues;
     double zValWeight = 1;
-    double movementWeight = 0.3;
-    quadCoeff *= zValWeight * zValWeight;
+    double movementWeight = 0.01;
+    quadCoeff *= zValWeight;
     for (int i = 0; i < quadCoeff.rows(); i++) {
-        quadCoeff.coeffRef(i, i) += movementWeight * movementWeight;
+        quadCoeff.coeffRef(i, i) += movementWeight * 1;
     }
     quadCoeff *= 2;
 
     // Set up the linear component
     VectorXd linearComp = vec;
-    linearComp *= movementWeight;
+    linearComp *= 2 * movementWeight;
     VectorXd zValPart = zConstant.transpose() * zValues;
     zValPart *= 2 * zValWeight;
     linearComp += zValPart;
