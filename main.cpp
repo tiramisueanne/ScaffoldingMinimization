@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
     int countStop = 1;
 #endif
 #ifndef DEBUG
-    int countStop = 30;
+    int countStop = 15;
 #endif
 #if !defined(DUALS)
     cout << "The fabs value was " << fabs(success + sum) << endl;

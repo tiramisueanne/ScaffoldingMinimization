@@ -2,7 +2,8 @@
 #include <iostream>
 #include "QuadraticSolver.h"
 
-#define DEBUG
+// #define DEBUG
+#define ONE_MATRIX
 // #define CHECK_WEIGHTS
 
 igl::SolverStatus QuadraticSolver::updateWeights() {
@@ -40,11 +41,17 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     // TODO: MULTIPLY BY TWO
     SparseMatrix<double> zDiff(internalSize, numEdges);
 
-    // This matrix is two rows for every vertex: one is diff in x for
-    // each edge, and one is diff in y
-    // This will be constrained to zero.
+// This matrix is two rows for every vertex: one is diff in x for
+// each edge, and one is diff in y
+// This will be constrained to zero.
+#ifndef ONE_MATRIX
     SparseMatrix<double> xDiff(numEdges, internalSize);
     SparseMatrix<double> yDiff(numEdges, internalSize * 2);
+#endif
+#ifdef ONE_MATRIX
+    SparseMatrix<double> xyDiff(internalSize * 2, numEdges);
+#endif
+
 // This is the identity matrix, to help us constrain the weights
 // to be positive
 #ifdef DEBUG_DUP
@@ -94,27 +101,44 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
 #endif
                 zDiff.coeffRef(indr.indexVert(currIndex),
                                indr.indexEdge(currIndex, index)) = zDiff1;
+#ifndef ONE_MATRIX
                 xDiff.coeffRef(indr.indexEdge(currIndex, index),
                                indr.indexVert(currIndex)) = xDiff1;
                 yDiff.coeffRef(indr.indexEdge(currIndex, index),
                                indr.indexVert(currIndex) * 2) = yDiff1;
                 yDiff.coeffRef(indr.indexEdge(currIndex, index),
                                indr.indexVert(currIndex) * 2 + 1) = -1 * yDiff1;
+#endif
+#ifdef ONE_MATRIX
+                xyDiff.coeffRef(indr.indexVert(currIndex) * 2,
+                                indr.indexEdge(currIndex, index)) = xDiff1;
+                xyDiff.coeffRef(indr.indexVert(currIndex) * 2 + 1,
+                                indr.indexEdge(currIndex, index)) = yDiff1;
+#endif
             }
         }
     }
-    cout << "Finished filling up the zDiff and xyDiff" << endl;
-    // just set this to all zeros
-    // The vector we add to the result of the constraint
+// just set this to all zeros
+// The vector we add to the result of the constraint
+#ifndef ONE_MATRIX
     VectorXd justZerosForX = VectorXd::Constant(internalSize, 0);
     VectorXd justZerosForY = VectorXd::Constant(internalSize * 2, 0);
+#endif
+#ifdef ONE_MATRIX
+    VectorXd justZerosForXY = VectorXd::Constant(internalSize * 2, 0);
+#endif
 
-    // Since weights is already a row vector, we do not have to
-    // transpose it
+// Since weights is already a row vector, we do not have to
+// transpose it
+#ifdef DEBUG
     cout << "Created a bunch of vectors!" << endl;
+#endif
     VectorXd linearComponent(forces.transpose() * zDiff);
     linearComponent *= 2;
+
+#ifdef DEBUG
     cout << "The row vector is done! " << endl;
+#endif
 #ifdef DEBUG
     cout << "The values of zDiff" << endl;
     for (int i = 0; i < zDiff.rows(); i++) {
@@ -128,17 +152,24 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     // To construct the positive definite zDiff matrix, we must
     // multiply it with itself
     zDiff = zDiff.transpose() * zDiff;
+#ifdef DEBUG
     cout << "Done transposing and multiplying!" << endl;
+#endif
     // Change this to the eigen way of doing it
     SparseMatrix<double> ident(zDiff.rows(), zDiff.rows());
     ident.setIdentity();
     zDiff = zDiff + (ident * pow(10, -15));
     zDiff *= 2;
-    cout << "The zDiff is totally done!" << endl;
 
+#ifdef DEBUG
+    cout << "The zDiff is totally done!" << endl;
+#endif
+
+#ifndef ONE_MATRIX
     xDiff = xDiff.transpose();
     yDiff = yDiff.transpose();
-#ifdef DEBUG
+#endif
+#if defined(DEBUG) && !defined(ONE_MATRIX)
     cout << "The values of the quadCoeff" << endl;
     for (int i = 0; i < zDiff.rows(); i++) {
         for (int j = 0; j < zDiff.cols(); j++) {
@@ -162,7 +193,6 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     }
 #endif
 
-    cout << "Starting quadprog" << endl;
     // Fix this to be the other one
     QuadProgDense problem;
 
@@ -175,14 +205,22 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     igl::active_set_params param = igl::active_set_params();
     param.max_iter = 200;
 
+#ifndef ONE_MATRIX
     igl::SolverStatus stat = igl::active_set(
         zDiff, linearComponent, emptyVeck, emptyVecY, xDiff, justZerosForX,
         yDiff, justZerosForY, allZerosLx, emptyVeclu, param, weights);
+#endif
+#ifdef ONE_MATRIX
+    igl::SolverStatus stat =
+        igl::active_set(zDiff, linearComponent, emptyVeck, emptyVecY, xyDiff,
+                        justZerosForXY, SparseMatrix<double>(), VectorXd(),
+                        allZerosLx, emptyVeclu, param, weights);
+#endif
     if (stat != 0 && stat != 1) {
         cerr << "The active set had a bad outcome!" << endl;
         throw new exception();
     }
-    cout << "Finished quadprog!" << endl;
+
     for (const auto edge : indr.edgeMap()) {
         weightMap[edge.first] = weights[edge.second];
 #ifdef DEBUG
@@ -226,6 +264,7 @@ bool QuadraticSolver::checkWeights() {
             processedEdges.insert({edge.second, edge.first});
         }
     }
+#ifdef DEBUG
     for (const auto node : unsupportedNodes) {
         cout << "This unsupported node is" << node << endl;
         cout << "The X value for this unsupported Node is "
@@ -239,5 +278,6 @@ bool QuadraticSolver::checkWeights() {
         assert(fabs(unsupportedNodeVals(indr.indexVert(node), 0)) < 0.01);
         assert(fabs(unsupportedNodeVals(indr.indexVert(node), 1)) < 0.01);
     }
+#endif
     return true;
 }
