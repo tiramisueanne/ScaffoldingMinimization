@@ -2,7 +2,7 @@
 #include <iostream>
 #include "QuadraticSolver.h"
 
-// #define DEBUG
+#define DEBUG
 #define ONE_MATRIX
 // #define CHECK_WEIGHTS
 
@@ -14,6 +14,12 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
 
     // Might have to update this, use the method
     forces = getForces();
+    #ifdef DEBUG
+    cout << "The forces are" << endl;
+    for(int i = 0; i < forces.rows(); i++ ) {
+        cout << forces(i) << " , ";
+    }
+    #endif
     if (edges.size() % 2 != 0) {
         cerr << "We do not have an even number of edges!" << endl;
         throw new exception();
@@ -158,7 +164,7 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     // Change this to the eigen way of doing it
     SparseMatrix<double> ident(zDiff.rows(), zDiff.rows());
     ident.setIdentity();
-    zDiff = zDiff + (ident * pow(10, -15));
+    zDiff = zDiff + (ident * pow(10, -6));
     zDiff *= 2;
 
 #ifdef DEBUG
@@ -169,7 +175,7 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     xDiff = xDiff.transpose();
     yDiff = yDiff.transpose();
 #endif
-#if defined(DEBUG) && !defined(ONE_MATRIX)
+#if defined(DEBUG)
     cout << "The values of the quadCoeff" << endl;
     for (int i = 0; i < zDiff.rows(); i++) {
         for (int j = 0; j < zDiff.cols(); j++) {
@@ -177,17 +183,10 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
         }
         cout << endl;
     }
-    cout << "The Values of xDiff is " << endl;
-    for (int i = 0; i < xDiff.rows(); i++) {
-        for (int j = 0; j < xDiff.cols(); j++) {
-            cout << xDiff.coeffRef(i, j) << " , ";
-        }
-        cout << endl;
-    }
-    cout << "The Values of yDiff is " << endl;
-    for (int i = 0; i < yDiff.rows(); i++) {
-        for (int j = 0; j < yDiff.cols(); j++) {
-            cout << yDiff.coeffRef(i, j) << " , ";
+    cout << "The Values of xyDiff is " << endl;
+    for (int i = 0; i < xyDiff.rows(); i++) {
+        for (int j = 0; j < xyDiff.cols(); j++) {
+            cout << xyDiff.coeffRef(i, j) << " , ";
         }
         cout << endl;
     }
@@ -220,6 +219,15 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
         cerr << "The active set had a bad outcome!" << endl;
         throw new exception();
     }
+
+#ifdef DEBUG
+    // Calculate the residual
+    double res =
+        linearComponent.dot(weights) + 0.5 * weights.transpose() * zDiff * weights;
+    double xyDiffRes = (xyDiff * weights).norm();
+    cout << "The residual of the function is " << res << endl;
+    cout << "The xyDiffRes is" << xyDiffRes << endl;
+#endif
 
     for (const auto edge : indr.edgeMap()) {
         weightMap[edge.first] = weights[edge.second];
@@ -264,8 +272,8 @@ bool QuadraticSolver::checkWeights() {
             processedEdges.insert({edge.second, edge.first});
         }
     }
-#ifdef DEBUG
     for (const auto node : unsupportedNodes) {
+#ifdef DEBUG
         cout << "This unsupported node is" << node << endl;
         cout << "The X value for this unsupported Node is "
              << unsupportedNodeVals(indr.indexVert(node), 0) << endl;
@@ -275,9 +283,11 @@ bool QuadraticSolver::checkWeights() {
              << unsupportedNodeVals(indr.indexVert(node), 2) << endl;
         cout << "The force for this unsupported node is"
              << forces(indr.indexVert(node)) << endl;
+
+#endif
         assert(fabs(unsupportedNodeVals(indr.indexVert(node), 0)) < 0.01);
         assert(fabs(unsupportedNodeVals(indr.indexVert(node), 1)) < 0.01);
+        assert(fabs(unsupportedNodeVals(indr.indexVert(node), 2)) > -0.0000001);
     }
-#endif
     return true;
 }

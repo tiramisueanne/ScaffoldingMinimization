@@ -18,7 +18,7 @@ VectorXd QuadraticSolver::getForces() {
     VectorXd areas = getForceAreas();
     VectorXd densities = getForceDensities();
     for (const auto& unsupported : unsupportedNodes) {
-        forces[indr.indexVert(unsupported)] = areas[indr.indexVert(unsupported)] * densities[indr.indexVert(unsupported)];
+        forces[indr.indexVert(unsupported)] = areas[unsupported] * densities[indr.indexVert(unsupported)];
         assert(forces[indr.indexVert(unsupported)] <= 0);
     }
     return forces;
