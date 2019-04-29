@@ -12,8 +12,8 @@ using namespace Eigen;
 
 class QuadraticSolver {
    public:
-    QuadraticSolver(MatrixXd &_V, MatrixXi &_F, bool isHand = false)
-        : V(_V), F(_F) {
+    QuadraticSolver(MatrixXd &_V, MatrixXi &_F, bool _isHand = false)
+        : V(_V), F(_F), isHand(_isHand) {
         unsupportedNodes = getUnsupportedNodes(F, V);
         cout << "Got the unsupported nodes!" << endl;
         edges = allEdges();
@@ -26,7 +26,7 @@ class QuadraticSolver {
     };
 
     // This is to calculate weights from our estimated forces on the structure
-    igl::SolverStatus updateWeights();
+    double updateWeights();
 
     // This is to update the vertices with weights given to edges fixed
     igl::SolverStatus updateVertices();
@@ -56,8 +56,8 @@ class QuadraticSolver {
     double getTotalForce() {
         double total = 0;
         forces = getForces();
-        for (int i = 0; i < forces.cols(); i++) {
-            total += forces(0, i) * forces(0 , i);
+        for(const auto unsupported : unsupportedNodes) {
+            total += forces(indr.indexVert(unsupported)) * forces(indr.indexVert(unsupported));
         }
         return total;
     }
@@ -79,4 +79,5 @@ class QuadraticSolver {
     map<pair<int, int>, double> weightMap;
     Indexer indr;
     set<int> unsupportedNodes;
+    bool isHand;
 };

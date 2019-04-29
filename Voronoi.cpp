@@ -33,5 +33,6 @@ Eigen::MatrixXd QuadraticSolver::getForceAreas() {
 
 Eigen::VectorXd QuadraticSolver::getForceDensities() {
     double toAdd = 1;
+    cout << "isHand is " << isHand;
     return VectorXd::Constant(V.rows(),  -1 * toAdd);
 }

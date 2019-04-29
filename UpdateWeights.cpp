@@ -3,10 +3,10 @@
 #include "QuadraticSolver.h"
 
 #define DEBUG
-#define ONE_MATRIX
 // #define CHECK_WEIGHTS
+#define WEIGHTS
 
-igl::SolverStatus QuadraticSolver::updateWeights() {
+double QuadraticSolver::updateWeights() {
     // We will only ever constrain or check the weights of internal nodes
     // as the others are clamped down at the edges
     unsigned int rowSize = int(V.rows());
@@ -14,12 +14,12 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
 
     // Might have to update this, use the method
     forces = getForces();
-    #ifdef DEBUG
+#ifdef DEBUG
     cout << "The forces are" << endl;
-    for(int i = 0; i < forces.rows(); i++ ) {
+    for (int i = 0; i < forces.rows(); i++) {
         cout << forces(i) << " , ";
     }
-    #endif
+#endif
     if (edges.size() % 2 != 0) {
         cerr << "We do not have an even number of edges!" << endl;
         throw new exception();
@@ -47,16 +47,10 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     // TODO: MULTIPLY BY TWO
     SparseMatrix<double> zDiff(internalSize, numEdges);
 
-// This matrix is two rows for every vertex: one is diff in x for
-// each edge, and one is diff in y
-// This will be constrained to zero.
-#ifndef ONE_MATRIX
-    SparseMatrix<double> xDiff(numEdges, internalSize);
-    SparseMatrix<double> yDiff(numEdges, internalSize * 2);
-#endif
-#ifdef ONE_MATRIX
+    // This matrix is two rows for every vertex: one is diff in x for
+    // each edge, and one is diff in y
+    // This will be constrained to zero.
     SparseMatrix<double> xyDiff(internalSize * 2, numEdges);
-#endif
 
 // This is the identity matrix, to help us constrain the weights
 // to be positive
@@ -107,32 +101,16 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
 #endif
                 zDiff.coeffRef(indr.indexVert(currIndex),
                                indr.indexEdge(currIndex, index)) = zDiff1;
-#ifndef ONE_MATRIX
-                xDiff.coeffRef(indr.indexEdge(currIndex, index),
-                               indr.indexVert(currIndex)) = xDiff1;
-                yDiff.coeffRef(indr.indexEdge(currIndex, index),
-                               indr.indexVert(currIndex) * 2) = yDiff1;
-                yDiff.coeffRef(indr.indexEdge(currIndex, index),
-                               indr.indexVert(currIndex) * 2 + 1) = -1 * yDiff1;
-#endif
-#ifdef ONE_MATRIX
                 xyDiff.coeffRef(indr.indexVert(currIndex) * 2,
                                 indr.indexEdge(currIndex, index)) = xDiff1;
                 xyDiff.coeffRef(indr.indexVert(currIndex) * 2 + 1,
                                 indr.indexEdge(currIndex, index)) = yDiff1;
-#endif
             }
         }
     }
-// just set this to all zeros
-// The vector we add to the result of the constraint
-#ifndef ONE_MATRIX
-    VectorXd justZerosForX = VectorXd::Constant(internalSize, 0);
-    VectorXd justZerosForY = VectorXd::Constant(internalSize * 2, 0);
-#endif
-#ifdef ONE_MATRIX
+    // just set this to all zeros
+    // The vector we add to the result of the constraint
     VectorXd justZerosForXY = VectorXd::Constant(internalSize * 2, 0);
-#endif
 
 // Since weights is already a row vector, we do not have to
 // transpose it
@@ -143,9 +121,6 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     linearComponent *= 2;
 
 #ifdef DEBUG
-    cout << "The row vector is done! " << endl;
-#endif
-#ifdef DEBUG
     cout << "The values of zDiff" << endl;
     for (int i = 0; i < zDiff.rows(); i++) {
         for (int j = 0; j < zDiff.cols(); j++) {
@@ -153,6 +128,11 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
         }
         cout << endl;
     }
+    cout << "The forces are " << endl;
+    for (int i = 0; i < forces.rows(); i++) {
+        cout << forces(i) << " , ";
+    }
+    cout << endl;
 #endif
 
     // To construct the positive definite zDiff matrix, we must
@@ -164,17 +144,9 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     // Change this to the eigen way of doing it
     SparseMatrix<double> ident(zDiff.rows(), zDiff.rows());
     ident.setIdentity();
-    zDiff = zDiff + (ident * pow(10, -6));
+    zDiff = zDiff + (ident * pow(10, -15));
     zDiff *= 2;
 
-#ifdef DEBUG
-    cout << "The zDiff is totally done!" << endl;
-#endif
-
-#ifndef ONE_MATRIX
-    xDiff = xDiff.transpose();
-    yDiff = yDiff.transpose();
-#endif
 #if defined(DEBUG)
     cout << "The values of the quadCoeff" << endl;
     for (int i = 0; i < zDiff.rows(); i++) {
@@ -190,6 +162,11 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
         }
         cout << endl;
     }
+    cout << "The values of linearComponent is" << endl;
+    for (int i = 0; i < linearComponent.rows(); i++) {
+        cout << linearComponent(i) << " , ";
+    }
+    cout << endl;
 #endif
 
     // Fix this to be the other one
@@ -204,40 +181,35 @@ igl::SolverStatus QuadraticSolver::updateWeights() {
     igl::active_set_params param = igl::active_set_params();
     param.max_iter = 200;
 
-#ifndef ONE_MATRIX
-    igl::SolverStatus stat = igl::active_set(
-        zDiff, linearComponent, emptyVeck, emptyVecY, xDiff, justZerosForX,
-        yDiff, justZerosForY, allZerosLx, emptyVeclu, param, weights);
-#endif
-#ifdef ONE_MATRIX
     igl::SolverStatus stat =
         igl::active_set(zDiff, linearComponent, emptyVeck, emptyVecY, xyDiff,
                         justZerosForXY, SparseMatrix<double>(), VectorXd(),
                         allZerosLx, emptyVeclu, param, weights);
-#endif
     if (stat != 0 && stat != 1) {
         cerr << "The active set had a bad outcome!" << endl;
         throw new exception();
     }
+    // Calculate the residual
+    double res = linearComponent.dot(weights) +
+        0.5 * weights.transpose() * zDiff * weights;
 
 #ifdef DEBUG
-    // Calculate the residual
-    double res =
-        linearComponent.dot(weights) + 0.5 * weights.transpose() * zDiff * weights;
     double xyDiffRes = (xyDiff * weights).norm();
     cout << "The residual of the function is " << res << endl;
     cout << "The xyDiffRes is" << xyDiffRes << endl;
+    double forcesT = forces.dot(forces);
+    cout << "The forces were" << forcesT << endl;
 #endif
 
     for (const auto edge : indr.edgeMap()) {
         weightMap[edge.first] = weights[edge.second];
-#ifdef DEBUG
+#ifdef WEIGHTS
         cout << "We placed " << weights[edge.second] << " into "
              << edge.first.first << " , " << edge.first.second << endl;
 #endif
     }
     checkWeights();
-    return stat;
+    return res;
 }
 
 bool QuadraticSolver::checkWeights() {
