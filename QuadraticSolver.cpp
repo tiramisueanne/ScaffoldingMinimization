@@ -11,19 +11,6 @@ using namespace std;
 using namespace Eigen;
 namespace qp = quadprogpp;
 
-// A method for getting the calculated weight for each vertex
-VectorXd QuadraticSolver::getForces() {
-    const int ZERO = 0;
-    forces = VectorXd(unsupportedNodes.size());
-    VectorXd areas = getForceAreas();
-    VectorXd densities = getForceDensities();
-    for (const auto& unsupported : unsupportedNodes) {
-        forces[indr.indexVert(unsupported)] = areas[unsupported] * densities[unsupported];
-        assert(forces[indr.indexVert(unsupported)] <= 0);
-    }
-    return forces;
-}
-
 set<pair<int, int>> QuadraticSolver::allEdges() {
     set<pair<int, int>> edges;
     for (int currFace = 0; currFace < F.rows(); currFace++) {
@@ -42,6 +29,7 @@ set<pair<int, int>> QuadraticSolver::allEdges() {
     return edges;
 }
 
+// DEPRECATED: use createLaplacian instead.
 void QuadraticSolver::bumpInternalNodes() {
     for (auto node : unsupportedNodes) {
         V.row(node).z() += 2;

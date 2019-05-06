@@ -36,3 +36,17 @@ Eigen::VectorXd QuadraticSolver::getForceDensities() {
     cout << "isHand is " << isHand;
     return VectorXd::Constant(V.rows(),  -1 * toAdd);
 }
+
+
+// A method for getting the calculated weight for each vertex
+VectorXd QuadraticSolver::getForces() {
+    const int ZERO = 0;
+    forces = VectorXd(unsupportedNodes.size());
+    VectorXd areas = getForceAreas();
+    VectorXd densities = getForceDensities();
+    for (const auto& unsupported : unsupportedNodes) {
+        forces[indr.indexVert(unsupported)] = areas[unsupported] * densities[unsupported];
+        assert(forces[indr.indexVert(unsupported)] <= 0);
+    }
+    return forces;
+}
