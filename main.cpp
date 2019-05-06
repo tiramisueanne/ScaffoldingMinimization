@@ -34,8 +34,10 @@ void quadraticProgrammingUpdateStructure(MatrixXd& V, MatrixXi& F) {
 }
 
 void createDuals(MatrixXd& V, MatrixXi& F) {
-    cerr << "Don't mind me, I have to reimplement this" << endl;
-    throw new exception();
+    QuadraticSolver qs(V, F);
+    qs.updateWeights();
+    MatrixXd dualVerts = qs.getNewDual();
+    V = getNewPrimal(dualVerts, V, F);
 }
 
 
