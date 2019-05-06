@@ -11,10 +11,10 @@
 #include <queue>
 #include <set>
 
-#include "EvenBigger.h"
+#include "HandMadeMeshes/TinyMesh.h"
+#include "HandMadeMeshes/SmallMesh.h"
+#include "HandMadeMeshes/MediumMesh.h"
 #include "GetNewPrimal.h"
-#include "HandMesh.h"
-#include "InitBiggerMesh.h"
 #include "QuadraticSolver.h"
 
 using namespace std;
