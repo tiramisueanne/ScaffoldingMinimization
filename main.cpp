@@ -11,21 +11,16 @@
 #include <queue>
 #include <set>
 
-#include "HandMadeMeshes/TinyMesh.h"
-#include "HandMadeMeshes/SmallMesh.h"
-#include "HandMadeMeshes/MediumMesh.h"
 #include "GetNewPrimal.h"
+#include "HandMadeMeshes/MediumMesh.h"
+#include "HandMadeMeshes/SmallMesh.h"
+#include "HandMadeMeshes/TinyMesh.h"
 #include "QuadraticSolver.h"
 
 using namespace std;
 using namespace Eigen;
-// #define DEBUG
-// #define CHECKDUALS
-// #define CHECKBIGMESH
-#define CHECKBIGGER
-// #define JUST_SHOW
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     // Reading in the primal V, F files
     Eigen::MatrixXd V;
     Eigen::MatrixXi F;
@@ -37,16 +32,13 @@ int main(int argc, char *argv[]) {
         if (name == "tiny") {
             initHandMesh(V, F);
             isHand = true;
-        }
-        else if (name == "small") {
+        } else if (name == "small") {
             initBiggerMesh(V, F);
             isHand = true;
-        }
-        else if (name == "medium") {
+        } else if (name == "medium") {
             evenBiggerMesh(V, F);
             isHand = true;
-        }
-        else {
+        } else {
             isHand = false;
             igl::readOBJ(argv[1], V, F);
         }
@@ -56,40 +48,25 @@ int main(int argc, char *argv[]) {
         initHandMesh(V, F);
         isHand = true;
     }
+    igl::opengl::glfw::Viewer viewer;
+    viewer.data().set_mesh(V, F);
+    // Compile the weights file
+    viewer.launch();
+}
 
-// This is the flood fill of finding the gradient and creating newVertices
-#if !defined(JUST_SHOW)
-    QuadraticSolver qs(V, F, isHand);
+void quadraticProgrammingUpdateStructure(MatrixXd& V, MatrixXi& F) {
+    QuadraticSolver qs(V, F);
     double res = 1;
     double sum = qs.getTotalForce();
     int count = 0;
-#ifdef DEBUG
-    int countStop = 1;
-#endif
-#ifndef DEBUG
     int countStop = 15;
-#endif
     while (fabs(res + sum) > pow(10, -6) && count < countStop) {
         res = qs.updateWeights();
         double updateSuccess = qs.updateVertices();
         count++;
     }
-    cout << "Iterated on this shape " << count << " times" << endl;
-#endif
-
-#if !defined(DUALS_L) && !defined(JUST_SHOW)
-    MatrixXd &toUse = qs.V;
-#endif
-
-    // utilize libigl's viewer
-    igl::opengl::glfw::Viewer viewer;
-#ifndef JUST_SHOW
-    viewer.data().set_mesh(toUse, qs.F);
-#endif
-#ifdef JUST_SHOW
-    viewer.data().set_mesh(V, F);
-#endif
-
-    // Compile the weights file
-    viewer.launch();
+    cout << "Iterated on this shape " << count << " times " << endl;
+    V = qs.V;
 }
+
+void createDuals(MatrixXd& V, MatrixXi& F) {}
