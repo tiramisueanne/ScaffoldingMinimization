@@ -11,20 +11,18 @@
 #include <queue>
 #include <set>
 
-#include "EvenBigger.h"
+#include "HandMadeMeshes/TinyMesh.h"
+#include "HandMadeMeshes/SmallMesh.h"
+#include "HandMadeMeshes/MediumMesh.h"
 #include "GetNewPrimal.h"
-#include "HandMesh.h"
-#include "InitBiggerMesh.h"
 #include "QuadraticSolver.h"
 
 using namespace std;
 using namespace Eigen;
 // #define DEBUG
-#define SHOW_POISSON
-// #define DUALS
 // #define CHECKDUALS
 // #define CHECKBIGMESH
-// #define CHECKBIGGER
+#define CHECKBIGGER
 // #define JUST_SHOW
 
 int main(int argc, char *argv[]) {
@@ -35,68 +33,50 @@ int main(int argc, char *argv[]) {
     // If a filename is given, then read in that
     bool isHand = false;
     if (argc > 1) {
-        igl::readOBJ(argv[1], V, F);
-
+        string name = argv[1];
+        if (name == "tiny") {
+            initHandMesh(V, F);
+            isHand = true;
+        }
+        else if (name == "small") {
+            initBiggerMesh(V, F);
+            isHand = true;
+        }
+        else if (name == "medium") {
+            evenBiggerMesh(V, F);
+            isHand = true;
+        }
+        else {
+            isHand = false;
+            igl::readOBJ(argv[1], V, F);
+        }
     }
-    // otherwise, use our hand-made mesh
+    // otherwise, use our tiny hand-made mesh
     else {
-#ifndef CHECKBIGGER
         initHandMesh(V, F);
         isHand = true;
-#endif
-#ifdef CHECKBIGGER
-        evenBiggerMesh(V, F);
-        isHand = true;
-#endif
     }
 
 // This is the flood fill of finding the gradient and creating newVertices
 #if !defined(JUST_SHOW)
     QuadraticSolver qs(V, F, isHand);
-    double success = 0;
+    double res = 1;
     double sum = qs.getTotalForce();
     int count = 0;
 #ifdef DEBUG
     int countStop = 1;
 #endif
 #ifndef DEBUG
-    int countStop = 30;
+    int countStop = 15;
 #endif
-#if !defined(DUALS)
-    cout << "The fabs value was " << fabs(success + sum) << endl;
-    while (fabs(success + sum) > 0.000001 && count < countStop) {
-        success = 0;
-        success += qs.updateWeights();
-        cout << "The success value of succ is " << success << endl;
-        cout << "The success value of succ and sum is " << sum + success
-             << endl;
+    while (fabs(res + sum) > pow(10, -6) && count < countStop) {
+        res = qs.updateWeights();
         double updateSuccess = qs.updateVertices();
-        cout << "the success value of updating was " << updateSuccess << endl;
         count++;
     }
     cout << "Iterated on this shape " << count << " times" << endl;
 #endif
-#endif
 
-#ifdef DUALS_L
-    qs.updateWeights();
-    MatrixXd dualVerts = qs.getNewDual();
-#ifdef CHECKDUALS
-    if (!qs.checkDual(dualVerts)) {
-        cerr << "dual is messed up" << endl;
-        throw new exception();
-    }
-#endif
-    MatrixXd newVerts = getNewPrimal(dualVerts, V, F);
-#endif
-
-#if defined(DUALS) && defined(DEBUG)
-    cout << "The new verts are " << newVerts << endl;
-    cout << "The first one is" << newVerts.row(0);
-#endif
-#ifdef DUALS
-    MatrixXd &toUse = newVerts;
-#endif
 #if !defined(DUALS_L) && !defined(JUST_SHOW)
     MatrixXd &toUse = qs.V;
 #endif
@@ -108,17 +88,6 @@ int main(int argc, char *argv[]) {
 #endif
 #ifdef JUST_SHOW
     viewer.data().set_mesh(V, F);
-#endif
-// Place dual points if we have them
-#ifdef DUALS_L
-    viewer.data().add_points(dualVerts, RowVector3d(10, 10, 100));
-#endif
-#ifdef CHECK_BIG
-    MatrixXd interesting(3, 3);
-    interesting.row(0) = V.row(9);
-    interesting.row(1) = V.row(25);
-    interesting.row(2) = V.row(37);
-    viewer.data().add_points(interesting, RowVector3d(10, 10, 100));
 #endif
 
     // Compile the weights file

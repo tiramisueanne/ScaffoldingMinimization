@@ -15,11 +15,13 @@ option(LIBIGL_WITH_VIEWER            "Use OpenGL viewer"  ON)
 find_package(LIBIGL REQUIRED QUIET)
 find_package(CGAL REQUIRED)
 
+
 # Add your project files
 file(GLOB SRCFILES *.cpp )
 
 add_executable(${PROJECT_NAME}_bin ${SRCFILES})
 target_link_libraries(${PROJECT_NAME}_bin igl::core igl::opengl_glfw)
 target_link_libraries(${PROJECT_NAME}_bin /usr/local/lib/libquadprog.a)
+target_link_libraries(${PROJECT_NAME}_bin /usr/local/lib/libeigen-quadprog.so)
 include_directories("${CGAL_INCLUDE_DIRS}")
 target_link_libraries(${PROJECT_NAME}_bin ${CGAL_LIBRARIES})

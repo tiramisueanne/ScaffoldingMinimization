@@ -1,18 +1,19 @@
 #pragma once
 #include <Eigen/Dense>
-#include <QuadProg++/QuadProg++.hh>
+#include <eigen-quadprog/QuadProg.h>
 #include <map>
-
+// #define ACTIVE_SET_CPP_DEBUG
+// #define MIN_QUAD_WITH_FIXED_CPP_DEBUG
+#include "igl/active_set.h"
 #include "Indexer.h"
 
 using namespace std;
 using namespace Eigen;
-namespace qp = quadprogpp;
 
 class QuadraticSolver {
    public:
-    QuadraticSolver(MatrixXd &_V, MatrixXi &_F, bool isHand = false)
-        : V(_V), F(_F) {
+    QuadraticSolver(MatrixXd &_V, MatrixXi &_F, bool _isHand = false)
+        : V(_V), F(_F), isHand(_isHand) {
         unsupportedNodes = getUnsupportedNodes(F, V);
         cout << "Got the unsupported nodes!" << endl;
         edges = allEdges();
@@ -21,16 +22,17 @@ class QuadraticSolver {
         cout << "Indexer all done!" << endl;
         createLaplacian(isHand);
         cout << "Laplacian also complete" << endl;
+        weights = VectorXd::Constant(edges.size() / 2, 0);
     };
 
     // This is to calculate weights from our estimated forces on the structure
     double updateWeights();
 
     // This is to update the vertices with weights given to edges fixed
-    double updateVertices();
+    igl::SolverStatus updateVertices();
 
     // This is how we estimate the forces
-    qp::Matrix<double> getForces();
+    VectorXd getForces();
 
     Eigen::MatrixXd getForceAreas();
     Eigen::VectorXd getForceDensities();
@@ -54,8 +56,8 @@ class QuadraticSolver {
     double getTotalForce() {
         double total = 0;
         forces = getForces();
-        for (int i = 0; i < forces.ncols(); i++) {
-            total += forces[0][i] * forces[0][i];
+        for(const auto unsupported : unsupportedNodes) {
+            total += forces(indr.indexVert(unsupported)) * forces(indr.indexVert(unsupported));
         }
         return total;
     }
@@ -64,16 +66,18 @@ class QuadraticSolver {
 
     MatrixXd getNewDual();
     bool checkDual(MatrixXd &dualVerts);
+    bool checkWeights();
 
-    void unsupportANode();
+    void deleteANode();
 
     MatrixXd &V;
-    qp::Vector<double> vec;
+    VectorXd vec;
     const MatrixXi &F;
     set<pair<int, int>> edges;
-    qp::Matrix<double> forces;
-    qp::Vector<double> weights;
+    VectorXd forces;
+    VectorXd weights;
     map<pair<int, int>, double> weightMap;
     Indexer indr;
     set<int> unsupportedNodes;
+    bool isHand;
 };

@@ -4,32 +4,37 @@
 using namespace std;
 using namespace Eigen;
 
-namespace qp = quadprogpp;
 // #define DEBUG
 #define USE_Z_OPT
 // #define CHECK_Z
 
-double QuadraticSolver::updateVertices() {
+igl::SolverStatus QuadraticSolver::updateVertices() {
     // Create the new thing to optimize, which is all the points of
     // the internal nodes
     int ZERO = 0;
-    vec = qp::Vector<double>(ZERO, unsupportedNodes.size() * V.cols());
+    vec = VectorXd::Constant(unsupportedNodes.size() * V.cols(), 0);
     for (auto row : unsupportedNodes) {
         for (int j = 0; j < V.cols(); j++) {
             vec[indr.indexBigVert(row, j)] = V(row, j);
         }
     }
+#ifdef DEBUG
+    for (int i = 0; i < V.rows(); i++) {
+        for (int j = 0; j < V.cols(); j++) {
+            cout << V(i, j) << " , ";
+        }
+        cout << endl;
+    }
+#endif
 
     // Create the new zDiff struct
-    qp::Matrix<double> zValues(ZERO, unsupportedNodes.size(),
-                               unsupportedNodes.size() * V.cols());
+    SparseMatrix<double> zValues(unsupportedNodes.size(),
+                                 unsupportedNodes.size() * V.cols());
+    SparseMatrix<double> xyValues(unsupportedNodes.size() * 2,
+                                  unsupportedNodes.size() * V.cols());
 
-    qp::Matrix<double> xyValues(ZERO, unsupportedNodes.size() * 2,
-                                unsupportedNodes.size() * V.cols());
-
-    qp::Vector<double> zConstant(ZERO, unsupportedNodes.size());
-    qp::Vector<double> xyConstant(ZERO, unsupportedNodes.size() * 2);
-
+    VectorXd zConstant = VectorXd::Constant(unsupportedNodes.size(), 0);
+    VectorXd xyConstant = VectorXd::Constant(unsupportedNodes.size() * 2, 0);
     // Go through each edge and add weights
     for (const pair<pair<int, int>, double>& edge_weight : weightMap) {
         const pair<int, int>& edge = edge_weight.first;
@@ -37,170 +42,163 @@ double QuadraticSolver::updateVertices() {
 
         // If this is a row to constrain
         if (unsupportedNodes.find(edge.first) != unsupportedNodes.end()) {
-            zValues[indr.indexVert(edge.first)]
-                   [indr.indexBigVert(edge.first, ZDim)] += weight;
-            xyValues[indr.indexVert(edge.first) * 2]
-                    [indr.indexBigVert(edge.first, XDim)] += weight;
-            xyValues[indr.indexVert(edge.first) * 2 + 1]
-                    [indr.indexBigVert(edge.first, YDim)] += weight;
-
+            zValues.coeffRef(indr.indexVert(edge.first),
+                             indr.indexBigVert(edge.first, ZDim)) += weight;
+            xyValues.coeffRef(indr.indexVert(edge.first) * 2,
+                              indr.indexBigVert(edge.first, XDim)) += weight;
+            xyValues.coeffRef(indr.indexVert(edge.first) * 2 + 1,
+                              indr.indexBigVert(edge.first, YDim)) += weight;
         } else {
             continue;
         }
 
         // If this will be affected by our optimized nodes
         if (unsupportedNodes.find(edge.second) != unsupportedNodes.end()) {
-            zValues[indr.indexVert(edge.first)]
-                   [indr.indexBigVert(edge.second, ZDim)] -= weight;
-            xyValues[indr.indexVert(edge.first) * 2]
-                    [indr.indexBigVert(edge.second, XDim)] -= weight;
-            xyValues[indr.indexVert(edge.first) * 2 + 1]
-                    [indr.indexBigVert(edge.second, YDim)] -= weight;
-
+            zValues.coeffRef(indr.indexVert(edge.first),
+                             indr.indexBigVert(edge.second, ZDim)) -= weight;
+            xyValues.coeffRef(indr.indexVert(edge.first) * 2,
+                              indr.indexBigVert(edge.second, XDim)) -= weight;
+            xyValues.coeffRef(indr.indexVert(edge.first) * 2 + 1,
+                              indr.indexBigVert(edge.second, YDim)) -= weight;
         } else {
-            zConstant[indr.indexVert(edge.first)] -=
+            // This needs to be negative because of negative forces
+            zConstant(indr.indexVert(edge.first)) -=
                 weight * V.row(edge.second).z();
 #ifdef CHECK_Z
             cout << "We added " << weight * V.row(edge.second).z() << " to "
                  << indr.indexVert(edge.first) << " to now force "
                  << zConstant[indr.indexVert(edge.first)] << endl;
 #endif
-            xyConstant[indr.indexVert(edge.first) * 2] -=
+            // These should be summed up, not subtracted as \sum w *(v_i) = \sum w * (v_j)
+            xyConstant(indr.indexVert(edge.first) * 2) +=
                 weight * V.row(edge.second).x();
-            xyConstant[indr.indexVert(edge.first) * 2 + 1] -=
+            xyConstant(indr.indexVert(edge.first) * 2 + 1) +=
                 weight * V.row(edge.second).y();
         }
     }
+#ifdef DEBUG
+    cout << "The zConstant is " << endl;
+#endif
     // For all forces, go through and add to zValues
-    for (int i = 0; i < forces.ncols(); i++) {
+    for (int i = 0; i < forces.rows(); i++) {
         // TODO: this requires no indexing right now, because it's all constants
-        zConstant[i] += forces[0][i];
-#ifdef CHECK_Z
-        cout << "We added the force " << forces[0][i] << " to the " << i << endl;
+        zConstant(i) += forces(i);
+#ifdef DEBUG
+        cout << zConstant << " , " << endl;
 #endif
     }
 
     // Our quadratic var
-    qp::Matrix<double> vecToPass(ZERO, vec.size(), vec.size());
-    qp::Matrix<double> multiplyZVal = dot_prod(t(zValues), zValues);
+    // Make this a sparse boi
+    SparseMatrix<double> quadCoeff = zValues.transpose() * zValues;
     double zValWeight = 1;
-    double movementWeight = 1;
-#ifdef USE_Z_OPT
-    vecToPass += multiplyZVal * zValWeight * zValWeight;
-#endif
-    for (int i = 0; i < vecToPass.nrows(); i++) {
-        vecToPass[i][i] += movementWeight * movementWeight;
+    double movementWeight = 0.01;
+    quadCoeff *= zValWeight;
+    for (int i = 0; i < quadCoeff.rows(); i++) {
+        quadCoeff.coeffRef(i, i) += movementWeight * 1;
     }
-    vecToPass *= 2;
+    quadCoeff *= 2;
 
     // Set up the linear component
-    qp::Vector<double> linearComp = vec;
-#ifdef USE_Z_OPT
-    linearComp *= movementWeight;
-    linearComp += zValWeight * dot_prod(forces, zValues);
-#endif
-    linearComp *= -2;
+    VectorXd linearComp = vec;
+    linearComp *= -2 * movementWeight;
+    VectorXd zValPart = zConstant.transpose() * zValues;
+    zValPart *= 2 * zValWeight;
+    linearComp += zValPart;
 #ifdef DEBUG
-#ifdef VERBOSE
-    cout << "vec used to be ";
-    for (int i = 0; i < vec.size(); i++) {
-        cout << vec[i] << endl;
+    cout << "The vec is " << endl;
+    for (int i = 0; i < vec.rows(); i++) {
+        cout << vec(i) << " , ";
     }
-    cout << "linear comp used to be";
-    for (int i = 0; i < vec.size(); i++) {
-        cout << linearComp[i] << endl;
-    }
-    cout << "The zValues are " << endl;
-    for (int i = 0; i < zValues.nrows(); i++) {
-        for (int j = 0; j < zValues.ncols(); j++) {
-            cout << zValues[i][j] << " ";
-        }
-        cout << endl;
-    }
-    cout << "The xyValues are" << endl;
-    for (int i = 0; i < xyValues.nrows(); i++) {
-        for (int j = 0; j < xyValues.ncols(); j++) {
-            cout << xyValues[i][j] << " ";
-        }
-        cout << endl;
-    }
-    cout << "The xyConsts are " << endl;
-    for (int i = 0; i < xyConstant.size(); i++) {
-        cout << xyConstant[i] << " ";
-    }
-#endif
     cout << endl;
-    qp::Vector<double> response = (dot_prod(zValues, vec));
-    const auto& vertVec = indr.vertVect();
-    for (int i = 0; i < vertVec.size(); i++) {
-        if (vertVec[i] == 0) {
-            cout << "The first internal vert is" << i << endl;
+    cout << "The zValues are" << endl;
+    for (int i = 0; i < zValues.rows(); i++) {
+        for (int j = 0; j < zValues.cols(); j++) {
+            cout << zValues.coeffRef(i, j) << " , ";
         }
+        cout << endl;
     }
-    cout << "The before value was:\n";
-    for (int i = 0; i < response.size(); i++) {
-        cout << response[i] << "and the zConst was" << zConstant[i] << endl;
-        cout << "The addition of resp and zConst is "
-             << response[i] + zConstant[i] << endl;
-        if (fabs(response[i] + zConstant[i]) > 0.2) {
-            for (int j = 0; j < vertVec.size(); j++) {
-                if (vertVec[j] == i) {
-                    cout << "AN INTERESTING POINT IS " << j << endl;
-                }
-            }
-            cout << endl;
+    cout << endl;
+    cout << "The quadCoeff is" << endl;
+    for (int i = 0; i < quadCoeff.rows(); i++) {
+        for (int j = 0; j < quadCoeff.cols(); j++) {
+            cout << quadCoeff.coeffRef(i, j) << " , ";
         }
+        cout << endl;
     }
-    qp::Vector<double> responseXY = (dot_prod(xyValues, vec));
-    cout << "The before value for xy was:\n";
-    for (int i = 0; i < response.size(); i++) {
-        // We are going to assert that these are small
-        double responseX = responseXY[2 * i] + xyConstant[2 * i];
-        double responseY = responseXY[2 * i + 1] + xyConstant[2 * i + 1];
-        if (fabs(responseX) + fabs(responseY) >= pow(10, -7)) {
-            cerr << "The xy diff is too big at " << fabs(responseX) << " and "
-                 << fabs(responseY) << endl;
-            throw new exception();
-        }
-    }
+    cout << endl;
 
-    // cout << responseXY[2 * i] << "and the xConst was" << xyConstant[2 * i]
-    //      << endl;
-    // cout << " while the yResp was" << responseXY[2 * i + 1]
-    //      << "and the yConst was " << xyConstant[2 * i + 1] << endl;
-
-    cout << "The value of vec was " << vec << endl;
+    cout << "Linear comp is" << endl;
+    for (int i = 0; i < linearComp.rows(); i++) {
+        cout << linearComp(i) << " , ";
+    }
+    cout << endl;
+    cout << "The xyValues are" << endl;
+    for (int i = 0; i < xyValues.rows(); i++) {
+        for (int j = 0; j < xyValues.cols(); j++) {
+            cout << xyValues.coeffRef(i, j) << " , ";
+        }
+        cout << endl;
+    }
+    cout << "The xyConstants are" << endl;
+    for (int i = 0; i < xyConstant.rows(); i++) {
+        cout << xyConstant(i) << " , ";
+    }
+    cout << endl;
 #endif
-    // xyConstant should be =, while zValue can be >=
-    double success = qp::solve_quadprog(vecToPass, linearComp, t(xyValues),
-                                        xyConstant, t(zValues), zConstant, vec);
 
-#ifdef DEBUG
-    cout << "The value of vec is now " << vec << endl;
-    cout << "The success value of updating was " << success << endl;
+    VectorXi unknowns;
+    VectorXd unknownVal;
 
-    response = (dot_prod(zValues, vec));
-    cout << "The response value was:\n";
-    for (int i = 0; i < response.size(); i++) {
-        cout << response[i] << "and the zConst was" << zConstant[i] << endl;
+    VectorXd lx;
+    VectorXd lu;
+
+    igl::SolverStatus stat =
+        igl::active_set(quadCoeff, linearComp, unknowns, unknownVal, xyValues,
+                        xyConstant, SparseMatrix<double>(), VectorXd(), lx, lu,
+                        igl::active_set_params(), vec);
+    if (stat != 0 && stat != 1) {
+        cerr << "the active set solver broke in vertice updating!" << endl;
+        throw new exception();
     }
-    responseXY = (dot_prod(xyValues, vec));
-    cout << "The response value for xy was:\n";
-    for (int i = 0; i < response.size(); i++) {
-        cout << responseXY[2 * i] << "and the xConst was" << xyConstant[2 * i]
-             << endl;
-        cout << " while the yResp was" << responseXY[2 * i + 1]
-             << "and the yConst was " << xyConstant[2 * i + 1] << endl;
+    double obj = linearComp.dot(vec) + 0.5 * vec.transpose() * quadCoeff * vec;
+    VectorXd vecP = VectorXd::Constant(unsupportedNodes.size() * V.cols(), 0);
+    for (auto row : unsupportedNodes) {
+        for (int j = 0; j < V.cols(); j++) {
+            vecP[indr.indexBigVert(row, j)] = V(row, j);
+        }
     }
-#endif
+
+    double objV =
+        linearComp.dot(vecP) + 0.5 * vecP.transpose() * quadCoeff * vecP;
+    VectorXd resXY = xyValues * vecP;
+    VectorXd realXY = xyValues * vec;
+    cout << "The obj function given " << obj
+         << " and what our originally vec would give " << objV << endl;
+    cout << "The resXY is" << resXY - xyConstant << endl;
+    cout << "The realXY is " << realXY - xyConstant << endl;
     moveVecIntoV();
-    return success;
+    return stat;
 }
 
 void QuadraticSolver::moveVecIntoV() {
+#ifdef DEBUG
+    MatrixX3d oldV = V;
+#endif
     for (auto row : unsupportedNodes) {
         for (int j = 0; j < V.cols(); j++) {
-            V(row, j) = vec[indr.indexBigVert(row, j)];
+            V(row, j) = vec(indr.indexBigVert(row, j));
         }
     }
+#ifdef DEBUG
+    cout << "The new V's were" << endl;
+    for (int i = 0; i < V.rows(); i++) {
+        for (int j = 0; j < V.cols(); j++) {
+            cout << V(i, j) << " , ";
+        }
+        cout << endl;
+    }
+    cout << "The oldV was " << oldV << endl;
+    cout << "The newV was " << V << endl;
+#endif
 }

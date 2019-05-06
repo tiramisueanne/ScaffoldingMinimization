@@ -57,3 +57,4 @@ void QuadraticSolver::createLaplacian(bool isHand = false) {
         V.col(2) *= pow(10, -1.5);
     }
 }
+

@@ -11,20 +11,6 @@ using namespace std;
 using namespace Eigen;
 namespace qp = quadprogpp;
 
-// #define DEBUG
-
-// A method for getting the calculated weight for each vertex
-qp::Matrix<double> QuadraticSolver::getForces() {
-    const int ZERO = 0;
-    forces = qp::Matrix<double>(ZERO, 1, unsupportedNodes.size());
-    VectorXd areas = getForceAreas();
-    VectorXd densities = getForceDensities();
-    for (const auto& unsupported : unsupportedNodes) {
-        forces[0][indr.indexVert(unsupported)] = areas[indr.indexVert(unsupported)] * densities[indr.indexVert(unsupported)];
-    }
-    return forces;
-}
-
 set<pair<int, int>> QuadraticSolver::allEdges() {
     set<pair<int, int>> edges;
     for (int currFace = 0; currFace < F.rows(); currFace++) {
@@ -43,6 +29,7 @@ set<pair<int, int>> QuadraticSolver::allEdges() {
     return edges;
 }
 
+// DEPRECATED: use createLaplacian instead.
 void QuadraticSolver::bumpInternalNodes() {
     for (auto node : unsupportedNodes) {
         V.row(node).z() += 2;
@@ -53,11 +40,11 @@ void QuadraticSolver::bumpInternalNodes() {
 }
 
 // Unsupport the node with the least force on it
-void QuadraticSolver::unsupportANode() {
+void QuadraticSolver::deleteANode() {
     forces = getForces();
-    VectorXd force(forces.ncols());
-    for(int i = 0; i < forces.ncols(); i++) {
-        force(i) = forces[0][i];
+    VectorXd force(forces.cols());
+    for(int i = 0; i < forces.cols(); i++) {
+        force(i) = forces(0, i);
     }
     int index;
     force.minCoeff(&index);

@@ -1,5 +1,6 @@
 #pragma once
 #include <map>
+#include <set>
 #include <vector>
 using namespace std;
 // A class to get the index into a matrix of only internal nodes
@@ -19,6 +20,7 @@ class Indexer {
     inline int indexEdge(int v1, int v2) const {
         if (edgeIndex.find(pair<int, int>(v1, v2)) == edgeIndex.end()) {
             cerr << "We are indexing a bad edge!" << endl;
+            cerr << v1 << " and " << v2 << endl;
             throw new exception();
         }
         return edgeIndex.at(pair<int, int>(v1, v2));
