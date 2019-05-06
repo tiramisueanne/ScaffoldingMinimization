@@ -17,6 +17,7 @@
 
 using namespace std;
 using namespace Eigen;
+
 void quadraticProgrammingUpdateStructure(MatrixXd& V, MatrixXi& F) {
     QuadraticSolver qs(V, F);
     double res = 1;
@@ -32,7 +33,10 @@ void quadraticProgrammingUpdateStructure(MatrixXd& V, MatrixXi& F) {
     V = qs.V;
 }
 
-void createDuals(MatrixXd& V, MatrixXi& F) {}
+void createDuals(MatrixXd& V, MatrixXi& F) {
+    cerr << "Don't mind me, I have to reimplement this" << endl;
+    throw new exception();
+}
 
 
 int main(int argc, char* argv[]) {
@@ -42,8 +46,8 @@ int main(int argc, char* argv[]) {
     Calculation type;
     parseInput(argc, argv, V, F, type);
 
-    // If a filename is given, then read in that
-    quadraticProgrammingUpdateStructure(V, F);
+    if(type == QUADRATIC) quadraticProgrammingUpdateStructure(V, F);
+    if(type == DUAL) createDuals(V, F);
 
     igl::opengl::glfw::Viewer viewer;
     viewer.data().set_mesh(V, F);
