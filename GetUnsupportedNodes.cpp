@@ -7,7 +7,7 @@
 #include "QuadraticSolver.h"
 using namespace std;
 using namespace Eigen;
-// #define DEBUG
+#define DEBUG
 // #define UNSUPPORT_A_NODE
 
 set<int> QuadraticSolver::getUnsupportedNodes(const MatrixXi &_F,
@@ -15,6 +15,8 @@ set<int> QuadraticSolver::getUnsupportedNodes(const MatrixXi &_F,
     // The two different sets for nodes
     set<int> supportedNodes;
     set<int> unsupportedNodes;
+
+
 
     // Adjacency matrix
     // TT | F | x 3 matrix where (i,j) is index of face that is adjacent
@@ -24,6 +26,7 @@ set<int> QuadraticSolver::getUnsupportedNodes(const MatrixXi &_F,
     Eigen::MatrixXi TT;
     Eigen::MatrixXi TTi;
     igl::triangle_triangle_adjacency(_F, TT, TTi);
+    cout << "the number of faces is " << _F.rows();
 
     // Go through each face and add each vertex
     for (int currFace = 0; currFace < _F.rows(); currFace++) {
@@ -72,10 +75,11 @@ set<int> QuadraticSolver::getUnsupportedNodes(const MatrixXi &_F,
 #endif
         }
     }
-    if (supportedNodes.size() + unsupportedNodes.size() != _V.innerSize()) {
+    if (supportedNodes.size() + unsupportedNodes.size() != _V.rows()) {
         cerr << "The added sizes did not add up!" << endl;
-        cerr << supportedNodes.size() << endl;
-        cerr << unsupportedNodes.size() << endl;
+        cerr << "supported " << supportedNodes.size() << endl;
+        cerr << "unsupported " << unsupportedNodes.size() << endl;
+        cerr << "Number of nodes" << _V.rows() << endl;
         throw new exception();
     }
 #ifdef DEBUG
@@ -86,8 +90,10 @@ set<int> QuadraticSolver::getUnsupportedNodes(const MatrixXi &_F,
     cout << endl;
     cout << "Size of unsupportedNodes was" << unsupportedNodes.size() << endl;
 #endif
-#ifdef UNSUPPORT_A_NODE
-    unsupportedNodes.insert(1);
+#ifdef DEBUG
+    cout << "the number of vertices is " << _V.rows() << endl;
+    cout << "The number of unsupported Nodes is " << unsupportedNodes.size() << endl;
 #endif
+
     return unsupportedNodes;
 }

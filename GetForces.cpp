@@ -33,7 +33,6 @@ Eigen::MatrixXd QuadraticSolver::getForceAreas() {
 
 Eigen::VectorXd QuadraticSolver::getForceDensities() {
     double toAdd = 1;
-    cout << "isHand is " << isHand;
     return VectorXd::Constant(V.rows(),  -1 * toAdd);
 }
 
@@ -42,10 +41,14 @@ Eigen::VectorXd QuadraticSolver::getForceDensities() {
 VectorXd QuadraticSolver::getForces() {
     const int ZERO = 0;
     forces = VectorXd(unsupportedNodes.size());
+    #ifdef DEBUG
+    cout << "the number of forces in getForces is " << forces.rows();
+    cout << "The number of unsupportedNodes should be the same and is "  << unsupportedNodes.size() << endl;
+    #endif
     VectorXd areas = getForceAreas();
     VectorXd densities = getForceDensities();
     for (const auto& unsupported : unsupportedNodes) {
-        forces[indr.indexVert(unsupported)] = areas[unsupported] * densities[unsupported];
+        forces(indr.indexVert(unsupported)) = areas(unsupported) * densities(unsupported);
         assert(forces[indr.indexVert(unsupported)] <= 0);
     }
     return forces;

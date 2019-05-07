@@ -39,45 +39,55 @@ void QuadraticSolver::bumpInternalNodes() {
     }
 }
 
-void QuadraticSolver::deleteANode(int index) {
+int QuadraticSolver::deleteANode(int index) {
     set<int> rowsToGo;
+    MatrixXi newF;
     // Go through all triangles
     for (int i = 0; i < F.rows(); i++) {
         bool removeThis = false;
         for (int j = 0; j < F.cols(); j++) {
             if (F(i, j) == index) {
-                rowsToGo.insert(index);
+                rowsToGo.insert(i);
             }
         }
     }
 
-    // Row removal from stack overflow
-    // https://stackoverflow.com/questions/13290395/how-to-remove-a-certain-row-or-column-while-using-eigen-library-c
-    for (const auto i : rowsToGo) {
-        int rows = F.rows() - 1;
-        int cols = F.cols();
-        F.block(i, 0, rows - i, cols) =
-            F.block(i + 1, 0, rows - i, F.cols());
-        cout << "F is now"<< endl;
-        cout << F << endl;
-        F.conservativeResize(rows, cols);
+    newF = MatrixXi(F.rows() - rowsToGo.size(), F.cols());
+    int fCount = 0;
+    for (int i = 0; i < newF.rows(); i++) {
+        while (rowsToGo.find(fCount) != rowsToGo.end()) fCount++;
+        newF.row(i) = F.row(fCount);
     }
-
-    int vrows = V.rows() -1;
+    F = newF;
+    // Removing the one row from vector
+    int vrows = V.rows() - 1;
     int cols = V.cols();
     V.block(index, 0, vrows - index, cols) =
         V.block(index + 1, 0, vrows - index, cols);
     V.conservativeResize(vrows, cols);
+    return newF.rows();
 }
 
 // Unsupport the node with the least force on it
-void QuadraticSolver::removeSmallestNode() {
+int QuadraticSolver::removeSmallestNode() {
     forces = getForces();
+    cout << "The number of forces in remove smallest" << forces.rows() << endl;
     VectorXd force(forces.cols());
     for (int i = 0; i < forces.cols(); i++) {
         force(i) = forces(0, i);
     }
-    int index;
-    force.minCoeff(&index);
-    deleteANode(index);
+    int indexIntoUnsupported;
+    force.minCoeff(&indexIntoUnsupported);
+    vector<int> vertVec = indr.vertVect();
+    auto realIndexIter =
+        std::find(vertVec.begin(), vertVec.end(), indexIntoUnsupported);
+    int realIndex = realIndexIter - vertVec.begin();
+    int toRet = deleteANode(realIndex);
+    if (toRet != 0) {
+        assert(unsupportedNodes.remove(realIndex) > 0);
+        edges = allEdges();
+        indr = Indexer(V.rows(), unsupportedNodes, edges);
+        weights = VectorXd::Constant(edges.size() / 2, 0);
+    }
+    return toRet;
 }

@@ -12,21 +12,28 @@
 #include <set>
 
 #include "GetNewPrimal.h"
-#include "QuadraticSolver.h"
 #include "ParseInput.h"
+#include "QuadraticSolver.h"
 
 using namespace std;
 using namespace Eigen;
 
-void findNextSpot(MatrixXd& V, MatrixXi& F){
+int findNextSpot(MatrixXd& V, MatrixXi& F) {
     QuadraticSolver qs(V, F);
     double res = 1;
     double sum;
+    int facesLeft = 0;
     do {
-        qs.removeSmallestNode();
-        sum = qs.getTotalForce();
-        res = qs.updateWeights();
-    } while(fabs(res + sum) < pow(10, -6)) ;
+        facesLeft = qs.removeSmallestNode();
+        if (facesLeft > 0) {
+            sum = qs.getTotalForce();
+            res = qs.updateWeights();
+        }
+    } while (fabs(res + sum) < pow(10, -6) && facesLeft > 0);
+    #ifdef DEBUG
+    cout << "the remaining faces are " << F << endl;
+    #endif
+    return facesLeft;
 }
 
 void quadraticProgrammingUpdateStructure(MatrixXd& V, MatrixXi& F) {
@@ -50,7 +57,6 @@ void createDuals(MatrixXd& V, MatrixXi& F) {
     V = getNewPrimal(dualVerts, V, F);
 }
 
-
 int main(int argc, char* argv[]) {
     // Reading in the primal V, F files
     Eigen::MatrixXd V;
@@ -58,15 +64,19 @@ int main(int argc, char* argv[]) {
     Calculation type;
     parseInput(argc, argv, V, F, type);
 
-    switch(type) {
-    case QUADRATIC:
-        quadraticProgrammingUpdateStructure(V, F);
-    break;
-    case DUAL:
-        createDuals(V, F);
-        break;
-    case SCAFFOLDING:
-        findNextSpot(V, F);
+    switch (type) {
+        case QUADRATIC:
+            quadraticProgrammingUpdateStructure(V, F);
+            break;
+        case DUAL:
+            createDuals(V, F);
+            break;
+        case SCAFFOLDING:
+            int hasFace = findNextSpot(V, F);
+            if(!hasFace) {
+                cout << "The structure is stable at all levels!" << endl;
+                return 0;
+            }
     }
 
     igl::opengl::glfw::Viewer viewer;
@@ -74,4 +84,3 @@ int main(int argc, char* argv[]) {
     // Compile the weights file
     viewer.launch();
 }
-
