@@ -68,11 +68,12 @@ class QuadraticSolver {
     bool checkDual(MatrixXd &dualVerts);
     bool checkWeights();
 
-    void deleteANode();
+    void removeSmallestNode();
+    void deleteANode(int index);
 
     MatrixXd &V;
     VectorXd vec;
-    const MatrixXi &F;
+    MatrixXi &F;
     set<pair<int, int>> edges;
     VectorXd forces;
     VectorXd weights;

@@ -15,7 +15,7 @@
 using namespace std;
 using namespace Eigen;
 
-enum Calculation { QUADRATIC, DUAL, JUST_SHOW};
+enum Calculation { QUADRATIC, DUAL, SCAFFOLDING, JUST_SHOW};
 
 void parseInput(int argc, char* argv[], MatrixXd& V, MatrixXi& F,
                 Calculation& type) {
@@ -29,6 +29,7 @@ void parseInput(int argc, char* argv[], MatrixXd& V, MatrixXi& F,
         static struct option long_options[]{
             {"quadratic", no_argument, 0, 0},
             {"dual", no_argument, 0, 0},
+            {"scaffolding", no_argument, 0, 0},
             {0, 0,  0,  0 },
         };
 
@@ -38,12 +39,7 @@ void parseInput(int argc, char* argv[], MatrixXd& V, MatrixXi& F,
         switch(c) {
         case 0:
             cout << "Got a long flag" << endl;
-            if(option_index == 0) {
-                type = QUADRATIC;
-            }
-            else {
-                type = DUAL;
-            }
+            type = (Calculation) option_index;
         default:
             cerr << "Got an unknown argument!" << endl;
         }

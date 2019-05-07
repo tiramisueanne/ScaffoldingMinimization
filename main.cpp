@@ -18,6 +18,17 @@
 using namespace std;
 using namespace Eigen;
 
+void findNextSpot(MatrixXd& V, MatrixXi& F){
+    QuadraticSolver qs(V, F);
+    double res = 1;
+    double sum;
+    do {
+        qs.removeSmallestNode();
+        sum = qs.getTotalForce();
+        res = qs.updateWeights();
+    } while(fabs(res + sum) < pow(10, -6)) ;
+}
+
 void quadraticProgrammingUpdateStructure(MatrixXd& V, MatrixXi& F) {
     QuadraticSolver qs(V, F);
     double res = 1;
@@ -30,7 +41,6 @@ void quadraticProgrammingUpdateStructure(MatrixXd& V, MatrixXi& F) {
         count++;
     }
     cout << "Iterated on this shape " << count << " times " << endl;
-    V = qs.V;
 }
 
 void createDuals(MatrixXd& V, MatrixXi& F) {
@@ -48,8 +58,16 @@ int main(int argc, char* argv[]) {
     Calculation type;
     parseInput(argc, argv, V, F, type);
 
-    if(type == QUADRATIC) quadraticProgrammingUpdateStructure(V, F);
-    if(type == DUAL) createDuals(V, F);
+    switch(type) {
+    case QUADRATIC:
+        quadraticProgrammingUpdateStructure(V, F);
+    break;
+    case DUAL:
+        createDuals(V, F);
+        break;
+    case SCAFFOLDING:
+        findNextSpot(V, F);
+    }
 
     igl::opengl::glfw::Viewer viewer;
     viewer.data().set_mesh(V, F);
