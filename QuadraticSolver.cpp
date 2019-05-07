@@ -59,12 +59,7 @@ int QuadraticSolver::deleteANode(int index) {
         newF.row(i) = F.row(fCount);
     }
     F = newF;
-    // Removing the one row from vector
-    int vrows = V.rows() - 1;
-    int cols = V.cols();
-    V.block(index, 0, vrows - index, cols) =
-        V.block(index + 1, 0, vrows - index, cols);
-    V.conservativeResize(vrows, cols);
+
     return newF.rows();
 }
 
@@ -84,7 +79,7 @@ int QuadraticSolver::removeSmallestNode() {
     int realIndex = realIndexIter - vertVec.begin();
     int toRet = deleteANode(realIndex);
     if (toRet != 0) {
-        assert(unsupportedNodes.remove(realIndex) > 0);
+        assert(unsupportedNodes.erase(realIndex) > 0);
         edges = allEdges();
         indr = Indexer(V.rows(), unsupportedNodes, edges);
         weights = VectorXd::Constant(edges.size() / 2, 0);
