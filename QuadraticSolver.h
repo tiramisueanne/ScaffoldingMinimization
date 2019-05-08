@@ -21,7 +21,7 @@ class QuadraticSolver {
         indr = Indexer(V.rows(), unsupportedNodes, edges);
         cout << "Indexer all done!" << endl;
         createLaplacian(isHand);
-        cout << "Laplacian also complete" << endl;
+        cout << "Laplacian also complete with vertices "<< V << endl;
         weights = VectorXd::Constant(edges.size() / 2, 0);
     };
 
@@ -63,6 +63,7 @@ class QuadraticSolver {
     }
 
     void moveVecIntoV();
+    double checkTiny();
 
     MatrixXd getNewDual();
     bool checkDual(MatrixXd &dualVerts);

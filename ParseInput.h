@@ -11,6 +11,7 @@
 #include "HandMadeMeshes/MediumMesh.h"
 #include "HandMadeMeshes/SmallMesh.h"
 #include "HandMadeMeshes/TinyMesh.h"
+#include "HandMadeMeshes/Annulus.h"
 
 using namespace std;
 using namespace Eigen;
@@ -23,6 +24,7 @@ void parseInput(int argc, char* argv[], MatrixXd& V, MatrixXi& F,
     // URL: https://www.systutorials.com/docs/linux/man/3-getopt/
     int c;
     int digit_optind = 0;
+    type = JUST_SHOW;
     while (true) {
         int this_optind = optind ? optind : 1;
         int option_index = 0;
@@ -35,7 +37,6 @@ void parseInput(int argc, char* argv[], MatrixXd& V, MatrixXi& F,
 
         c = getopt_long(argc, argv, "", long_options, &option_index);
         if(c == -1) break;
-        type = JUST_SHOW;
         switch(c) {
         case 0:
             cout << "Got a long flag" << endl;
@@ -52,7 +53,10 @@ void parseInput(int argc, char* argv[], MatrixXd& V, MatrixXi& F,
             initBiggerMesh(V, F);
         } else if (name == "medium") {
             evenBiggerMesh(V, F);
-        } else {
+        } else if(name == "annulus") {
+            createAnnulus(V, F);
+        }
+        else {
             igl::readOBJ(argv[optind], V, F);
         }
     }

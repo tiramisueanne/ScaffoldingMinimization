@@ -39,6 +39,11 @@ void QuadraticSolver::bumpInternalNodes() {
     }
 }
 
+double QuadraticSolver::checkTiny() {
+    RowVector3i firstFace = F.row(0);
+    return log10((V.row(firstFace(0)) - V.row(firstFace(1))).squaredNorm());
+}
+
 int QuadraticSolver::deleteANode(int index) {
     set<int> rowsToGo;
     MatrixXi newF;
@@ -50,14 +55,23 @@ int QuadraticSolver::deleteANode(int index) {
                 rowsToGo.insert(i);
             }
         }
+        #ifdef DEBUG
+        cout << "Should " << F.row(i) << " go? " << endl;
+        cout << bool(rowsToGo.find(i) != rowsToGo.end()) << endl;
+        #endif
     }
 
+    #ifdef DEBUG
+    cout << "The newMatrix's size should be" << F.rows() - rowsToGo.size() << endl;
+    #endif
     newF = MatrixXi(F.rows() - rowsToGo.size(), F.cols());
     int fCount = 0;
     for (int i = 0; i < newF.rows(); i++) {
         while (rowsToGo.find(fCount) != rowsToGo.end()) fCount++;
         newF.row(i) = F.row(fCount);
+        fCount++;
     }
+    cout << "The newF is " << newF << endl;
     F = newF;
 
     return newF.rows();

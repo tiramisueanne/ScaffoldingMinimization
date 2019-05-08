@@ -53,8 +53,10 @@ void QuadraticSolver::createLaplacian(bool isHand = false) {
     cout << "Created a decomp thing" << endl;
     V.col(2) = decomp.solve(onesForBounds);
     cout << "The decompositoin is done" << endl;
+    #ifdef ACKNOWLEDGE_ISHAND
     if (!isHand) {
         V.col(2) *= pow(10, -1.5);
     }
+    #endif
 }
 

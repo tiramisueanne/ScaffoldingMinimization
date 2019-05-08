@@ -17,6 +17,7 @@
 
 using namespace std;
 using namespace Eigen;
+#define DEBUG
 
 int findNextSpot(MatrixXd& V, MatrixXi& F) {
     QuadraticSolver qs(V, F);
@@ -26,10 +27,14 @@ int findNextSpot(MatrixXd& V, MatrixXi& F) {
     do {
         facesLeft = qs.removeSmallestNode();
         if (facesLeft > 0) {
-            sum = qs.getTotalForce();
             res = qs.updateWeights();
+            sum = qs.getTotalForce();
+            #ifdef DEBUG
+            cout << "The residual is " << res << endl;
+            cout << "The totalForce is " << sum << endl;
+            #endif
         }
-    } while (fabs(res + sum) < pow(10, -6) && facesLeft > 0);
+    } while (fabs(res + sum) < pow(10, -9) && facesLeft > 0);
     #ifdef DEBUG
     cout << "the remaining faces are " << F << endl;
     #endif
@@ -41,10 +46,11 @@ void quadraticProgrammingUpdateStructure(MatrixXd& V, MatrixXi& F) {
     double res = 1;
     double sum = qs.getTotalForce();
     int count = 0;
-    int countStop = 15;
+    int countStop = 1;
     while (fabs(res + sum) > pow(10, -6) && count < countStop) {
         res = qs.updateWeights();
         double updateSuccess = qs.updateVertices();
+        sum = qs.getTotalForce();
         count++;
     }
     cout << "Iterated on this shape " << count << " times " << endl;
@@ -77,6 +83,7 @@ int main(int argc, char* argv[]) {
                 cout << "The structure is stable at all levels!" << endl;
                 return 0;
             }
+            break;
     }
 
     igl::opengl::glfw::Viewer viewer;
