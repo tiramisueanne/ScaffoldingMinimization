@@ -26,7 +26,13 @@ void createAnnulus(MatrixXd &V, MatrixXi &F) {
         edges(e, 0) = e;
         edges(e, 1) = (e + 1) % (r1 * 4);
     }
+    #ifdef DEBUG
     cout << "The verts were " << verts << endl;
     cout << "The edges were " << edges << endl;
-    igl::triangle::triangulate(verts, edges, holes, "q", V, F);
+    #endif
+    MatrixXd twoDV;
+    igl::triangle::triangulate(verts, edges, holes, "a10q", twoDV, F);
+    V = MatrixXd(twoDV.rows(), 3);
+    V.block(0, 0, twoDV.rows(), 2) = twoDV;
+    V.block(0, 2, V.rows(), 1) = VectorXd::Constant(V.rows(), 0);
 }

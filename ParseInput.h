@@ -16,7 +16,7 @@
 using namespace std;
 using namespace Eigen;
 
-enum Calculation { QUADRATIC, DUAL, SCAFFOLDING, JUST_SHOW};
+enum Calculation { QUADRATIC, DUAL, SCAFFOLDING, SHOWDUAL, JUST_SHOW};
 
 void parseInput(int argc, char* argv[], MatrixXd& V, MatrixXi& F,
                 Calculation& type) {
@@ -32,6 +32,7 @@ void parseInput(int argc, char* argv[], MatrixXd& V, MatrixXi& F,
             {"quadratic", no_argument, 0, 0},
             {"dual", no_argument, 0, 0},
             {"scaffolding", no_argument, 0, 0},
+            {"showdual", no_argument, 0, 0},
             {0, 0,  0,  0 },
         };
 

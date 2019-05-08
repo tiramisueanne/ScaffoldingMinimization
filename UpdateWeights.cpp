@@ -2,7 +2,7 @@
 #include <iostream>
 #include "QuadraticSolver.h"
 
-#define DEBUG
+// #define DEBUG
 // #define CHECK_WEIGHTS
 #define WEIGHTS
 

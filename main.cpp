@@ -29,15 +29,15 @@ int findNextSpot(MatrixXd& V, MatrixXi& F) {
         if (facesLeft > 0) {
             res = qs.updateWeights();
             sum = qs.getTotalForce();
-            #ifdef DEBUG
+#ifdef DEBUG
             cout << "The residual is " << res << endl;
             cout << "The totalForce is " << sum << endl;
-            #endif
+#endif
         }
     } while (fabs(res + sum) < pow(10, -9) && facesLeft > 0);
-    #ifdef DEBUG
+#ifdef DEBUG
     cout << "the remaining faces are " << F << endl;
-    #endif
+#endif
     return facesLeft;
 }
 
@@ -70,6 +70,8 @@ int main(int argc, char* argv[]) {
     Calculation type;
     parseInput(argc, argv, V, F, type);
 
+    igl::opengl::glfw::Viewer viewer;
+
     switch (type) {
         case QUADRATIC:
             quadraticProgrammingUpdateStructure(V, F);
@@ -77,16 +79,21 @@ int main(int argc, char* argv[]) {
         case DUAL:
             createDuals(V, F);
             break;
-        case SCAFFOLDING:
+        case SCAFFOLDING: {
             int hasFace = findNextSpot(V, F);
-            if(!hasFace) {
+            if (!hasFace) {
                 cout << "The structure is stable at all levels!" << endl;
                 return 0;
             }
             break;
+        }
+        case SHOWDUAL: {
+        }
+        default:
+            QuadraticSolver qs(V, F);
+            break;
     }
 
-    igl::opengl::glfw::Viewer viewer;
     viewer.data().set_mesh(V, F);
     // Compile the weights file
     viewer.launch();

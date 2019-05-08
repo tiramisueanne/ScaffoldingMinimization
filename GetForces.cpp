@@ -6,7 +6,7 @@
 #include "QuadraticSolver.h"
 using namespace std;
 using namespace Eigen;
-#define DEBUG
+#define WRONG
 #define TRY_FORCES
 
 // Calculate the Voronoi area for each vertex
@@ -49,7 +49,12 @@ VectorXd QuadraticSolver::getForces() {
     VectorXd areas = getForceAreas();
     VectorXd densities = getForceDensities();
     for (const auto& unsupported : unsupportedNodes) {
+        #ifndef WRONG
         forces(indr.indexVert(unsupported)) = areas(unsupported) * densities(unsupported);
+        #endif
+        #ifdef WRONG
+        forces(indr.indexVert(unsupported)) = densities(unsupported);
+        #endif
 #ifdef DEBUG
         cout << "The forces are " << forces[indr.indexVert(unsupported)] << endl;
 #endif

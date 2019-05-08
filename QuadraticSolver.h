@@ -21,7 +21,9 @@ class QuadraticSolver {
         indr = Indexer(V.rows(), unsupportedNodes, edges);
         cout << "Indexer all done!" << endl;
         createLaplacian(isHand);
+        #ifdef DEBUG
         cout << "Laplacian also complete with vertices "<< V << endl;
+        #endif
         weights = VectorXd::Constant(edges.size() / 2, 0);
     };
 
