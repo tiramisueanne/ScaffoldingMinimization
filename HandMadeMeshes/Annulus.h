@@ -7,11 +7,12 @@ using namespace std;
 using namespace Eigen;
 
 void createAnnulus(MatrixXd &V, MatrixXi &F) {
-    cout << "Was good in createAnnulus" << endl;
-    int r1 = 20;
-    MatrixXd verts(r1 * 4, 2);
-    MatrixXd edges(r1 * 4, 2);
-    MatrixXd holes;
+    int r1 = 10;
+    int r2 = 3;
+    MatrixXd verts(r1 * 4 + r2 * 4, 2);
+    MatrixXd edges(r1 * 4 + r2 * 4, 2);
+    MatrixXd holes(1, 2);
+    holes << 0, 0;
     // the upper half, clockwise
     for (int x = -r1; x < r1; x++) {
         verts(x + r1, 0) = x;
@@ -26,6 +27,23 @@ void createAnnulus(MatrixXd &V, MatrixXi &F) {
         edges(e, 0) = e;
         edges(e, 1) = (e + 1) % (r1 * 4);
     }
+
+    int finish1 = r1 * 4;
+    for (int x = -r2; x < r2; x++) {
+        verts(finish1 + x + r2, 0) = x;
+        verts(finish1 + x + r2, 1) = sqrt(r2 * r2 - x * x);
+    }
+    // The lower half, clockwise
+    for (int x = r2; x > -r2; x--) {
+        verts(finish1 + r2 * 2 + (r2 - x), 0) = x;
+        verts(finish1 + r2 * 2 + (r2 - x), 1) = -sqrt(r2 * r2 - x * x);
+    }
+
+    for (int e = 0; e < r2 * 4; e++) {
+        edges(finish1 + e, 0) = finish1 + e;
+        edges(finish1 + e, 1) = finish1 + ((e + 1) % (r2 * 4));
+    }
+
     #ifdef DEBUG
     cout << "The verts were " << verts << endl;
     cout << "The edges were " << edges << endl;

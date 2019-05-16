@@ -91,8 +91,8 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
     // Our quadratic var
     // Make this a sparse boi
     SparseMatrix<double> quadCoeff = zValues.transpose() * zValues;
-    double zValWeight = 1;
-    double movementWeight = 0.01;
+    double zValWeight = 0.85;
+    double movementWeight = 0.15;
     quadCoeff *= zValWeight;
     for (int i = 0; i < quadCoeff.rows(); i++) {
         quadCoeff.coeffRef(i, i) += movementWeight * 1;

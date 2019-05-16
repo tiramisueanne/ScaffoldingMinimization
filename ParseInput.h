@@ -2,21 +2,23 @@
 #include <Eigen/Dense>
 
 #include <ctype.h>
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <iostream>
-#include <getopt.h>
 
+#include "HandMadeMeshes/Annulus.h"
+#include "HandMadeMeshes/Disc.h"
+#include "HandMadeMeshes/Square.h"
 #include "HandMadeMeshes/MediumMesh.h"
 #include "HandMadeMeshes/SmallMesh.h"
 #include "HandMadeMeshes/TinyMesh.h"
-#include "HandMadeMeshes/Annulus.h"
 
 using namespace std;
 using namespace Eigen;
 
-enum Calculation { QUADRATIC, DUAL, SCAFFOLDING, SHOWDUAL, JUST_SHOW};
+enum Calculation { QUADRATIC, DUAL, SCAFFOLDING, SHOWDUAL, JUST_SHOW };
 
 void parseInput(int argc, char* argv[], MatrixXd& V, MatrixXi& F,
                 Calculation& type) {
@@ -33,20 +35,20 @@ void parseInput(int argc, char* argv[], MatrixXd& V, MatrixXi& F,
             {"dual", no_argument, 0, 0},
             {"scaffolding", no_argument, 0, 0},
             {"showdual", no_argument, 0, 0},
-            {0, 0,  0,  0 },
+            {0, 0, 0, 0},
         };
 
         c = getopt_long(argc, argv, "", long_options, &option_index);
-        if(c == -1) break;
-        switch(c) {
-        case 0:
-            cout << "Got a long flag" << endl;
-            type = (Calculation) option_index;
-        default:
-            cerr << "Got an unknown argument!" << endl;
+        if (c == -1) break;
+        switch (c) {
+            case 0:
+                cout << "Got a long flag" << endl;
+                type = (Calculation)option_index;
+            default:
+                cerr << "Got an unknown argument!" << endl;
         }
     }
-    if(optind < argc) {
+    if (optind < argc) {
         string name = argv[optind];
         if (name == "tiny") {
             initHandMesh(V, F);
@@ -54,14 +56,18 @@ void parseInput(int argc, char* argv[], MatrixXd& V, MatrixXi& F,
             initBiggerMesh(V, F);
         } else if (name == "medium") {
             evenBiggerMesh(V, F);
-        } else if(name == "annulus") {
+        } else if (name == "annulus") {
             createAnnulus(V, F);
-        }
-        else {
+        } else if (name == "disc") {
+            createDisc(V, F);
+
+        } else if (name == "square") {
+            createSquare(V, F);
+
+        } else {
             igl::readOBJ(argv[optind], V, F);
         }
-    }
-    else {
+    } else {
         initHandMesh(V, F);
     }
 }

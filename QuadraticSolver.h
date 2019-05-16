@@ -69,7 +69,7 @@ class QuadraticSolver {
 
     MatrixXd getNewDual();
     bool checkDual(MatrixXd &dualVerts);
-    bool checkWeights();
+    // bool checkWeights();
 
     int removeSmallestNode();
     int deleteANode(int index);

@@ -6,7 +6,7 @@
 #include "QuadraticSolver.h"
 using namespace std;
 using namespace Eigen;
-#define WRONG
+// #define WRONG
 #define TRY_FORCES
 
 // Calculate the Voronoi area for each vertex
@@ -32,31 +32,32 @@ Eigen::MatrixXd QuadraticSolver::getForceAreas() {
     return areas;
 }
 
-
 Eigen::VectorXd QuadraticSolver::getForceDensities() {
     return VectorXd::Constant(V.rows(), -pow(10, checkTiny() + 1));
 }
-
 
 // A method for getting the calculated weight for each vertex
 VectorXd QuadraticSolver::getForces() {
     const int ZERO = 0;
     forces = VectorXd(unsupportedNodes.size());
-    #ifdef DEBUG
+#ifdef DEBUG
     cout << "the number of forces in getForces is " << forces.rows();
-    cout << "The number of unsupportedNodes should be the same and is "  << unsupportedNodes.size() << endl;
-    #endif
+    cout << "The number of unsupportedNodes should be the same and is "
+         << unsupportedNodes.size() << endl;
+#endif
     VectorXd areas = getForceAreas();
     VectorXd densities = getForceDensities();
     for (const auto& unsupported : unsupportedNodes) {
-        #ifndef WRONG
-        forces(indr.indexVert(unsupported)) = areas(unsupported) * densities(unsupported);
-        #endif
-        #ifdef WRONG
+#ifndef WRONG
+        forces(indr.indexVert(unsupported)) =
+            areas(unsupported) * densities(unsupported);
+#endif
+#ifdef WRONG
         forces(indr.indexVert(unsupported)) = densities(unsupported);
-        #endif
+#endif
 #ifdef DEBUG
-        cout << "The forces are " << forces[indr.indexVert(unsupported)] << endl;
+        cout << "The forces are " << forces[indr.indexVert(unsupported)]
+             << endl;
 #endif
 
         assert(forces[indr.indexVert(unsupported)] <= 0);
