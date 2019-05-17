@@ -49,6 +49,7 @@ void quadraticProgrammingUpdateStructure(MatrixXd& V, MatrixXi& F) {
     int countStop = 1;
     while (fabs(res + sum) > pow(10, -6) && count < countStop) {
         res = qs.updateWeights();
+        cout << "Got past updating weights" << endl;
         double updateSuccess = qs.updateVertices();
         sum = qs.getTotalForce();
         count++;

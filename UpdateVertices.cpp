@@ -80,9 +80,9 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
     cout << "The zConstant is " << endl;
 #endif
     // For all forces, go through and add to zValues
-    for (int i = 0; i < forces.rows(); i++) {
+    for (const auto unsupported : unsupportedNodes) {
         // TODO: this requires no indexing right now, because it's all constants
-        zConstant(i) += forces(i);
+        zConstant(indr.indexVert(unsupported)) += forces(indr.indexVert(unsupported));
 #ifdef DEBUG
         cout << zConstant << " , " << endl;
 #endif
@@ -91,8 +91,8 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
     // Our quadratic var
     // Make this a sparse boi
     SparseMatrix<double> quadCoeff = zValues.transpose() * zValues;
-    double zValWeight = 0.85;
-    double movementWeight = 0.15;
+    double zValWeight = 1;
+    double movementWeight = 0;
     quadCoeff *= zValWeight;
     for (int i = 0; i < quadCoeff.rows(); i++) {
         quadCoeff.coeffRef(i, i) += movementWeight * 1;
@@ -177,6 +177,7 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
          << " and what our originally vec would give " << objV << endl;
     cout << "The resXY is" << resXY - xyConstant << endl;
     cout << "The realXY is " << realXY - xyConstant << endl;
+    cout << "The perfect object is" << zConstant.dot(zConstant) << endl;
     moveVecIntoV();
     return stat;
 }
