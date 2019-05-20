@@ -7,7 +7,7 @@ using namespace std;
 using namespace Eigen;
 
 void createDisc(MatrixXd &V, MatrixXi &F) {
-    int r1 = 7;
+    int r1 = 12;
     MatrixXd verts(r1 * 4, 2);
     MatrixXd edges(r1 * 4, 2);
     MatrixXd holes;

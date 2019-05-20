@@ -10,15 +10,22 @@
 
 #include "HandMadeMeshes/Annulus.h"
 #include "HandMadeMeshes/Disc.h"
-#include "HandMadeMeshes/Square.h"
 #include "HandMadeMeshes/MediumMesh.h"
 #include "HandMadeMeshes/SmallMesh.h"
+#include "HandMadeMeshes/Square.h"
 #include "HandMadeMeshes/TinyMesh.h"
 
 using namespace std;
 using namespace Eigen;
 
-enum Calculation { QUADRATIC, DUAL, SCAFFOLDING, SHOWDUAL, JUST_SHOW };
+enum Calculation {
+    QUADRATIC,
+    DUAL,
+    SCAFFOLDING,
+    SHOWDUAL,
+    REMOVE,
+    JUST_SHOW,
+};
 
 void parseInput(int argc, char* argv[], MatrixXd& V, MatrixXi& F,
                 Calculation& type) {
@@ -35,6 +42,7 @@ void parseInput(int argc, char* argv[], MatrixXd& V, MatrixXi& F,
             {"dual", no_argument, 0, 0},
             {"scaffolding", no_argument, 0, 0},
             {"showdual", no_argument, 0, 0},
+            {"remove", no_argument, 0, 0},
             {0, 0, 0, 0},
         };
 
@@ -44,6 +52,7 @@ void parseInput(int argc, char* argv[], MatrixXd& V, MatrixXi& F,
             case 0:
                 cout << "Got a long flag" << endl;
                 type = (Calculation)option_index;
+                cout << "The type we got is " << type << endl;
             default:
                 cerr << "Got an unknown argument!" << endl;
         }

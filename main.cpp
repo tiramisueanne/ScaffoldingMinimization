@@ -24,6 +24,8 @@ int findNextSpot(MatrixXd& V, MatrixXi& F) {
     double res = 1;
     double sum;
     int facesLeft = 0;
+    double tenPercent;
+    int count = 0;
     do {
         facesLeft = qs.removeSmallestNode();
         if (facesLeft > 0) {
@@ -34,7 +36,10 @@ int findNextSpot(MatrixXd& V, MatrixXi& F) {
             cout << "The totalForce is " << sum << endl;
 #endif
         }
-    } while (fabs(res + sum) < pow(10, -9) && facesLeft > 0);
+        tenPercent = 0.1 * sum;
+        count++;
+    } while (res != 1 && fabs(res + sum) < tenPercent && facesLeft > 0);
+    cout << "We removed " << count << "nodes from this figure" << endl;
 #ifdef DEBUG
     cout << "the remaining faces are " << F << endl;
 #endif
@@ -46,10 +51,11 @@ void quadraticProgrammingUpdateStructure(MatrixXd& V, MatrixXi& F) {
     double res = 1;
     double sum = qs.getTotalForce();
     int count = 0;
-    int countStop = 1;
+    int countStop = 15;
     while (fabs(res + sum) > pow(10, -6) && count < countStop) {
         res = qs.updateWeights();
-        cout << "Got past updating weights" << endl;
+        cout << "Got past updating weights with res " << res << " and sum "
+             << sum << endl;
         double updateSuccess = qs.updateVertices();
         sum = qs.getTotalForce();
         count++;
@@ -64,6 +70,11 @@ void createDuals(MatrixXd& V, MatrixXi& F) {
     V = getNewPrimal(dualVerts, V, F);
 }
 
+void removeCheapestNode(MatrixXd& V, MatrixXi& F) {
+    QuadraticSolver qs(V, F);
+    qs.removeSmallestNode();
+}
+
 int main(int argc, char* argv[]) {
     // Reading in the primal V, F files
     Eigen::MatrixXd V;
@@ -72,7 +83,8 @@ int main(int argc, char* argv[]) {
     parseInput(argc, argv, V, F, type);
 
     igl::opengl::glfw::Viewer viewer;
-
+    cout << "The type we are going to switch on is" << type << endl;
+    int hasFace;
     switch (type) {
         case QUADRATIC:
             quadraticProgrammingUpdateStructure(V, F);
@@ -81,16 +93,22 @@ int main(int argc, char* argv[]) {
             createDuals(V, F);
             break;
         case SCAFFOLDING: {
-            int hasFace = findNextSpot(V, F);
+            quadraticProgrammingUpdateStructure(V, F);
+            hasFace = findNextSpot(V, F);
             if (!hasFace) {
                 cout << "The structure is stable at all levels!" << endl;
                 return 0;
             }
             break;
         }
-        case SHOWDUAL: {
-        }
+        case SHOWDUAL:
+            break;
+        case REMOVE:
+            cout << "We just got into removeCheapest!" << endl;
+            removeCheapestNode(V, F);
+            break;
         default:
+            cout << "We just showed it from laplacian" << endl;
             QuadraticSolver qs(V, F);
             break;
     }

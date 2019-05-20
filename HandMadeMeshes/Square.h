@@ -20,7 +20,7 @@ void createSquare(MatrixXd &V, MatrixXi &F) {
         2, 3,
         3, 0;
     MatrixXd twoDV;
-    igl::triangle::triangulate(verts, edges, holes, "a1", twoDV, F);
+    igl::triangle::triangulate(verts, edges, holes, "a0.8", twoDV, F);
     V = MatrixXd(twoDV.rows(), 3);
     V.block(0, 0, twoDV.rows(), 2) = twoDV;
     V.block(0, 2, V.rows(), 1) = VectorXd::Constant(V.rows(), 0);

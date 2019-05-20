@@ -1,4 +1,5 @@
 #include <Eigen/Dense>
+#include <Eigen/QR>
 #include <iostream>
 
 #include "QuadraticSolver.h"
@@ -45,11 +46,11 @@ void QuadraticSolver::createLaplacian(bool isHand = false) {
         }
     }
     cout << "Setting up the valence done!" << endl;
-    VectorXd onesForBounds(V.rows());
-    onesForBounds = VectorXd::Ones(V.rows());
+    VectorXd onesForBounds = VectorXd::Ones(V.rows());
+
     cout << "Ones for bounds created" << endl;
 
-    HouseholderQR<MatrixXd> decomp(lap);
+    Eigen::FullPivLU<MatrixXd> decomp(lap);
     cout << "Created a decomp thing" << endl;
     V.col(2) = decomp.solve(onesForBounds);
     cout << "The decompositoin is done" << endl;

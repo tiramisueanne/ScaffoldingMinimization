@@ -12,7 +12,7 @@ using namespace Eigen;
 namespace qp = quadprogpp;
 
 set<pair<int, int>> QuadraticSolver::allEdges() {
-    set<pair<int, int>> edges;
+    edges = set<pair<int, int>>();
     for (int currFace = 0; currFace < F.rows(); currFace++) {
         RowVector3i face = F.row(currFace);
         for (int i = 0; i < 3; i++) {
@@ -55,15 +55,16 @@ int QuadraticSolver::deleteANode(int index) {
                 rowsToGo.insert(i);
             }
         }
-        #ifdef DEBUG
+#ifdef DEBUG
         cout << "Should " << F.row(i) << " go? " << endl;
         cout << bool(rowsToGo.find(i) != rowsToGo.end()) << endl;
-        #endif
+#endif
     }
 
-    #ifdef DEBUG
-    cout << "The newMatrix's size should be" << F.rows() - rowsToGo.size() << endl;
-    #endif
+#ifdef DEBUG
+    cout << "The newMatrix's size should be" << F.rows() - rowsToGo.size()
+         << endl;
+#endif
     newF = MatrixXi(F.rows() - rowsToGo.size(), F.cols());
     int fCount = 0;
     for (int i = 0; i < newF.rows(); i++) {
@@ -71,29 +72,53 @@ int QuadraticSolver::deleteANode(int index) {
         newF.row(i) = F.row(fCount);
         fCount++;
     }
+
+    for (int i = 0; i < newF.rows(); i++) {
+        for (int j = 0; j < newF.cols(); j++) {
+            assert(newF(i, j) != index);
+            if (newF(i, j) > index) {
+                newF(i, j)--;
+            }
+        }
+    }
+
+    assert(unsupportedNodes.erase(index) == 1);
+    for (int i = index + 1; i < V.rows(); i++) {
+        if (unsupportedNodes.find(i) != unsupportedNodes.end()) {
+            unsupportedNodes.erase(i);
+            unsupportedNodes.insert(i - 1);
+        }
+    }
+#ifdef DEBUG
     cout << "The newF is " << newF << endl;
+#endif
     F = newF;
+    if (index <= V.rows() - 1) {
+        cout << "The first block is " << V.block(index, 0, V.rows() - index - 1, V.cols())
+             << endl;
+        cout << "the second block is" << V.block(index + 1, 0, V.rows() - index - 1, V.cols()) << endl;
+        V.block(index, 0, V.rows() - index - 1, V.cols()) =
+            V.block(index + 1, 0, V.rows() - index - 1, V.cols());
+    }
+    V.conservativeResize(V.rows() - 1, V.cols());
+
+    // Fix the rows
 
     return newF.rows();
 }
 
+int QuadraticSolver::getCheapestNode() {
+    int indexIntoUnsupported;
+    V.col(2).maxCoeff(&indexIntoUnsupported);
+    return indexIntoUnsupported;
+}
+
 // Unsupport the node with the least force on it
 int QuadraticSolver::removeSmallestNode() {
-    forces = getForces();
-    cout << "The number of forces in remove smallest" << forces.rows() << endl;
-    VectorXd force(forces.cols());
-    for (int i = 0; i < forces.cols(); i++) {
-        force(i) = forces(0, i);
-    }
-    int indexIntoUnsupported;
-    force.minCoeff(&indexIntoUnsupported);
-    vector<int> vertVec = indr.vertVect();
-    auto realIndexIter =
-        std::find(vertVec.begin(), vertVec.end(), indexIntoUnsupported);
-    int realIndex = realIndexIter - vertVec.begin();
+    int realIndex = getCheapestNode();
     int toRet = deleteANode(realIndex);
     if (toRet != 0) {
-        assert(unsupportedNodes.erase(realIndex) > 0);
+        weightMap = map<pair<int, int>, double>();
         edges = allEdges();
         indr = Indexer(V.rows(), unsupportedNodes, edges);
         weights = VectorXd::Constant(edges.size() / 2, 0);

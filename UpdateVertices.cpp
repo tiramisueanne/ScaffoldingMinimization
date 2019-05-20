@@ -18,7 +18,9 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
             vec[indr.indexBigVert(row, j)] = V(row, j);
         }
     }
+    VectorXd oldVec = vec;
 #ifdef DEBUG
+    cout << "The oldVec dot oldVec is " << oldVec.dot(oldVec) << endl;
     for (int i = 0; i < V.rows(); i++) {
         for (int j = 0; j < V.cols(); j++) {
             cout << V(i, j) << " , ";
@@ -69,7 +71,8 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
                  << indr.indexVert(edge.first) << " to now force "
                  << zConstant[indr.indexVert(edge.first)] << endl;
 #endif
-            // These should be summed up, not subtracted as \sum w *(v_i) = \sum w * (v_j)
+            // These should be summed up, not subtracted as \sum w *(v_i) = \sum
+            // w * (v_j)
             xyConstant(indr.indexVert(edge.first) * 2) +=
                 weight * V.row(edge.second).x();
             xyConstant(indr.indexVert(edge.first) * 2 + 1) +=
@@ -82,7 +85,8 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
     // For all forces, go through and add to zValues
     for (const auto unsupported : unsupportedNodes) {
         // TODO: this requires no indexing right now, because it's all constants
-        zConstant(indr.indexVert(unsupported)) += forces(indr.indexVert(unsupported));
+        zConstant(indr.indexVert(unsupported)) +=
+            forces(indr.indexVert(unsupported));
 #ifdef DEBUG
         cout << zConstant << " , " << endl;
 #endif
@@ -91,16 +95,16 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
     // Our quadratic var
     // Make this a sparse boi
     SparseMatrix<double> quadCoeff = zValues.transpose() * zValues;
-    double zValWeight = 1;
-    double movementWeight = 0;
+    double zValWeight = 0.8;
+    double movementWeight = 0.2;
     quadCoeff *= zValWeight;
     for (int i = 0; i < quadCoeff.rows(); i++) {
-        quadCoeff.coeffRef(i, i) += movementWeight * 1;
+        quadCoeff.coeffRef(i, i) += movementWeight;
     }
     quadCoeff *= 2;
 
     // Set up the linear component
-    VectorXd linearComp = vec;
+    VectorXd linearComp = oldVec;
     linearComp *= -2 * movementWeight;
     VectorXd zValPart = zConstant.transpose() * zValues;
     zValPart *= 2 * zValWeight;
@@ -173,11 +177,13 @@ igl::SolverStatus QuadraticSolver::updateVertices() {
         linearComp.dot(vecP) + 0.5 * vecP.transpose() * quadCoeff * vecP;
     VectorXd resXY = xyValues * vecP;
     VectorXd realXY = xyValues * vec;
+    #ifdef DEBUG
     cout << "The obj function given " << obj
          << " and what our originally vec would give " << objV << endl;
     cout << "The resXY is" << resXY - xyConstant << endl;
     cout << "The realXY is " << realXY - xyConstant << endl;
-    cout << "The perfect object is" << zConstant.dot(zConstant) << endl;
+    cout << "The perfect object is" << zConstant.dot(zConstant) * zValWeight  + oldVec.dot(oldVec) * movementWeight << endl;
+    #endif
     moveVecIntoV();
     return stat;
 }

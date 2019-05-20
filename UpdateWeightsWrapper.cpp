@@ -3,7 +3,7 @@
 #include <iostream>
 #include "QuadraticSolver.h"
 
-#define DEBUG_SIZE
+// #define DEBUG_SIZE
 
 double QuadraticSolver::updateWeights() {
     // We will only ever constrain or check the weights of internal nodes
@@ -24,7 +24,7 @@ double QuadraticSolver::updateWeights() {
         throw new exception();
     }
 
-#ifdef DEBUG
+#ifdef DEBUG_SIZE
     cout << "The current V's are " << endl;
     for (int i = 0; i < V.rows(); i++) {
         for (int j = 0; j < V.cols(); j++) {
@@ -118,7 +118,7 @@ double QuadraticSolver::updateWeights() {
     VectorXd linearComponent(forces.transpose() * zDiff);
     linearComponent *= 2;
 
-#ifdef DEBUG
+#ifdef DEBUG_SIZE
     cout << "The values of zDiff" << endl;
     for (int i = 0; i < zDiff.rows(); i++) {
         for (int j = 0; j < zDiff.cols(); j++) {
@@ -190,10 +190,13 @@ double QuadraticSolver::updateWeights() {
     bool converged =
         solver.solve(zDiff, linearComponent, xyDiff, justZerosForXY,
                      -1 * identity, allZerosForPosWeights);
+    // Just to make sure it all gets done out
+    weights = VectorXd::Constant(zDiff.rows(), 0);
     weights = solver.result();
     if (!converged) {
         cerr << "Quadprog had a bad outcome!" << endl;
         throw new exception();
+        return 1;
     }
 #ifdef DEBUG_SIZE
     cout << "Got out of the sovler" << endl;
@@ -210,8 +213,16 @@ double QuadraticSolver::updateWeights() {
     cout << "The xyDiffRes is" << xyDiffRes << endl;
     double forcesT = forces.dot(forces);
     cout << "The forces were" << forcesT << endl;
+    // Check if the constraints are met
+    VectorXd resPosWeights = -1 * identity * weights;
+    for (int i = 0; i < resPosWeights.rows(); i++) {
+        if (resPosWeights(i) > 0.0001) {
+            cout << "The constraint at " << i << " was not met " << endl;
+        }
+    }
 #endif
 
+    weightMap = map<pair<int, int>, double>();
     for (const auto edge : indr.edgeMap()) {
         weightMap[edge.first] = weights[edge.second];
 #ifdef WEIGHTS
@@ -220,5 +231,8 @@ double QuadraticSolver::updateWeights() {
 #endif
     }
 
+    if(!checkWeights()) {
+        res = 1;
+    }
     return res;
 }
